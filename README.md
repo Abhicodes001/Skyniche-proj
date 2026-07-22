@@ -1,16 +1,53 @@
-# React + Vite (updated 2026-07-22)
+# Login Page UI — React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack **User Authentication Portal** built with React (Vite) on the frontend and Node.js/Express on the backend.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 🔐 User Login & Registration with JWT authentication
+- 🛡️ Admin Portal with protected routes
+- 📊 Dashboard with user profile management
+- 💾 MySQL/MariaDB database integration
+- 🎨 Modern responsive UI with CSS glassmorphism design
+- 🔒 Remember Me session persistence via localStorage
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite, CSS |
+| Backend | Node.js, Express |
+| Database | MySQL / MariaDB |
+| Auth | JWT (JSON Web Tokens), bcrypt |
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+# Install frontend dependencies
+npm install
+
+# Start the dev server
+npm run dev
+
+# In a separate terminal, start the backend
+cd vrinda-user-login-backend
+npm install
+node server.js
+```
+
+## Project Structure
+
+```
+login-ui/
+├── src/
+│   ├── pages/         # Login, Dashboard, UserAuth, AdminAuth
+│   ├── components/    # Reusable Modal component
+│   └── styles/        # Page-specific CSS files
+└── vrinda-user-login-backend/
+    ├── routes/        # API routes
+    ├── controllers/   # Auth logic
+    └── config/        # DB connection
+```
+
+---
+Last updated: 2026-07-22
