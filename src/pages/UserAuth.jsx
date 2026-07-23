@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "../components/Modal";
 import "../styles/Login.css";
 
@@ -22,6 +22,16 @@ function UserAuth({ onSuccess, onSwitchToAdmin }) {
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSubmitted, setForgotSubmitted] = useState(false);
+
+  // Scrollytelling active slide state
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % 3);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,162 +123,207 @@ function UserAuth({ onSuccess, onSwitchToAdmin }) {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card">
-        {/* Portal Switch Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", paddingBottom: "12px", borderBottom: "1px solid var(--border)" }}>
-          <span style={{ fontSize: "12px", fontWeight: "bold", color: "var(--primary)" }}>👤 USER PORTAL</span>
-          <button
-            type="button"
-            onClick={onSwitchToAdmin}
-            style={{
-              background: "#fee2e2",
-              color: "#ef4444",
-              border: "1px solid rgba(239,68,68,0.3)",
-              padding: "4px 10px",
-              borderRadius: "6px",
-              fontSize: "12px",
-              fontWeight: "bold",
-              cursor: "pointer"
-            }}
-          >
-            🔑 Switch to Admin Login
-          </button>
-        </div>
+      {/* Dynamic Floating Blobs */}
+      <div className="glowing-blobs-container">
+        <div className="glowing-blob blob-1"></div>
+        <div className="glowing-blob blob-2"></div>
+        <div className="glowing-blob blob-3"></div>
+      </div>
 
-        {/* Brand Header */}
-        <div className="auth-header">
-          <div className="auth-brand">
-            <div className="brand-icon">⚡</div>
-            <span className="brand-title">PortalX</span>
+      <div className="auth-container">
+        {/* Left Side: Scrollytelling Features Showcase */}
+        <div className="auth-promo-panel">
+          <div className="promo-header">
+            <div className="promo-brand-icon">⚡</div>
+            <span className="promo-brand-name">PortalX</span>
           </div>
-          <h2 className="auth-welcome">
-            {activeTab === "login" ? "User Sign In" : "User Registration"}
-          </h2>
-          <p className="auth-subtitle">
-            {activeTab === "login"
-              ? "Sign in with your registered user account"
-              : "Register a new user account to get access"}
-          </p>
-        </div>
 
-        {/* Tab Switcher */}
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
-            onClick={() => { setActiveTab("login"); setAlert(null); }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`auth-tab ${activeTab === "register" ? "active" : ""}`}
-            onClick={() => { setActiveTab("register"); setAlert(null); }}
-          >
-            Register
-          </button>
-        </div>
-
-        {/* Alert Notification */}
-        {alert && (
-          <div className={`auth-alert ${alert.type}`}>
-            <span>{alert.type === "error" ? "⚠️" : "✅"}</span>
-            {alert.message}
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="auth-form">
-          {activeTab === "register" && (
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <div className="input-box">
-                <span className="field-icon">👤</span>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
+          <div className="scrollytelling-slider">
+            <div className={`scrolly-slide ${slideIndex === 0 ? "active" : ""}`}>
+              <h3>Interactive Performance Telemetry</h3>
+              <p>
+                Track live API response metrics, query resolution times, and network throughput charts 
+                dynamically built in our custom analytics control panel.
+              </p>
             </div>
-          )}
+            <div className={`scrolly-slide ${slideIndex === 1 ? "active" : ""}`}>
+              <h3>Advanced User Administration</h3>
+              <p>
+                Administrators can filter, update, and manage accounts securely from a streamlined 
+                directory board synced with backend schemas.
+              </p>
+            </div>
+            <div className={`scrolly-slide ${slideIndex === 2 ? "active" : ""}`}>
+              <h3>Integrated SQL Database</h3>
+              <p>
+                Integrated with persistent MySQL databases to store sessions, profile settings, and 
+                system logs securely with automated backup utilities.
+              </p>
+            </div>
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div className="input-box">
-              <span className="field-icon">✉️</span>
-              <input
-                type="email"
-                className="input-field"
-                placeholder="user@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <div className="scrolly-indicators">
+              {[0, 1, 2].map((idx) => (
+                <div
+                  key={idx}
+                  className={`indicator-dot ${slideIndex === idx ? "active" : ""}`}
+                  onClick={() => setSlideIndex(idx)}
+                ></div>
+              ))}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">
-              <span>Password</span>
-              {activeTab === "login" && (
-                <button
-                  type="button"
-                  style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "12px", cursor: "pointer" }}
-                  onClick={() => { setForgotModalOpen(true); setForgotSubmitted(false); setForgotEmail(email); }}
-                >
-                  Forgot?
-                </button>
-              )}
-            </label>
-            <div className="input-box">
-              <span className="field-icon">🔒</span>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="input-field"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+          <div className="promo-footer">
+            &copy; 2026 PortalX Inc. All rights reserved.
+          </div>
+        </div>
+
+        {/* Right Side: Glassmorphism Card */}
+        <div className="auth-form-panel">
+          <div className="auth-card">
+            {/* Portal Switch Header */}
+            <div className="portal-switch-header">
+              <span className="portal-label" style={{ color: "var(--primary)" }}>👤 USER PORTAL</span>
               <button
                 type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
+                className="portal-switch-btn"
+                onClick={onSwitchToAdmin}
+                style={{ color: "#ef4444" }}
               >
-                {showPassword ? "Hide" : "Show"}
+                🔑 Switch to Admin Login
               </button>
             </div>
-          </div>
 
-          {activeTab === "login" && (
-            <div className="form-row">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                />
-                Remember me on this device
-              </label>
+            {/* Welcome Text */}
+            <h2 className="auth-welcome">
+              {activeTab === "login" ? "User Sign In" : "User Registration"}
+            </h2>
+            <p className="auth-subtitle">
+              {activeTab === "login"
+                ? "Sign in with your registered account"
+                : "Create a new user account to get access"}
+            </p>
+
+            {/* Modern Tab Switcher */}
+            <div className="auth-tabs">
+              <div className={`tab-indicator ${activeTab === "register" ? "register-active" : ""}`}></div>
+              <button
+                type="button"
+                className={`auth-tab ${activeTab === "login" ? "active" : ""}`}
+                onClick={() => { setActiveTab("login"); setAlert(null); }}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                className={`auth-tab ${activeTab === "register" ? "active" : ""}`}
+                onClick={() => { setActiveTab("register"); setAlert(null); }}
+              >
+                Register
+              </button>
             </div>
-          )}
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? "Processing..." : activeTab === "login" ? "Sign In →" : "Register Account →"}
-          </button>
-        </form>
+            {/* Alert Banner */}
+            {alert && (
+              <div className={`auth-alert ${alert.type}`}>
+                <span>{alert.type === "error" ? "⚠️" : "✅"}</span>
+                {alert.message}
+              </div>
+            )}
 
-        {/* Demo Hint */}
-        {activeTab === "login" && (
-          <div className="demo-hint" style={{ marginTop: "20px" }}>
-            <span>💡 <strong>Note:</strong> Sign In works only for registered users.</span>
-            <span>Test registered user: <code>demo@example.com</code> | Pass: <code>password123</code></span>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="auth-form">
+              {activeTab === "register" && (
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <div className="input-box">
+                    <input
+                      type="text"
+                      className="input-field"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                    <span className="field-icon">👤</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <div className="input-box">
+                  <input
+                    type="email"
+                    className="input-field"
+                    placeholder="user@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <span className="field-icon">✉️</span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  <span>Password</span>
+                  {activeTab === "login" && (
+                    <button
+                      type="button"
+                      style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "12px", cursor: "pointer", fontWeight: "600" }}
+                      onClick={() => { setForgotModalOpen(true); setForgotSubmitted(false); setForgotEmail(email); }}
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </label>
+                <div className="input-box">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <span className="field-icon">🔒</span>
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              {activeTab === "login" && (
+                <div className="form-row">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                    />
+                    Remember me on this device
+                  </label>
+                </div>
+              )}
+
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? "Processing..." : activeTab === "login" ? "Sign In →" : "Register Account →"}
+              </button>
+            </form>
+
+            {/* Demo Credentials Hint */}
+            {activeTab === "login" && (
+              <div className="demo-hint">
+                <span>💡 <strong>Note:</strong> Sign In works only for registered users.</span>
+                <span>Test account: <code>demo@example.com</code> | Pass: <code>password123</code></span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Forgot Password Modal */}

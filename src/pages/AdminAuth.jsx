@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/Login.css";
 
 function AdminAuth({ onSuccess, onSwitchToUser }) {
@@ -7,6 +7,16 @@ function AdminAuth({ onSuccess, onSwitchToUser }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
+
+  // Scrollytelling active slide state
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlideIndex((prev) => (prev + 1) % 3);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,104 +77,139 @@ function AdminAuth({ onSuccess, onSwitchToUser }) {
   };
 
   return (
-    <div className="auth-wrapper" style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)" }}>
-      <div className="auth-card" style={{ borderColor: "#ef4444", boxShadow: "0 20px 40px rgba(239, 68, 68, 0.15)" }}>
-        {/* Portal Switch Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", paddingBottom: "12px", borderBottom: "1px solid var(--border)" }}>
-          <span style={{ fontSize: "12px", fontWeight: "bold", color: "#ef4444" }}>🛡️ ADMINISTRATOR PORTAL</span>
-          <button
-            type="button"
-            onClick={onSwitchToUser}
-            style={{
-              background: "var(--primary-light)",
-              color: "var(--primary)",
-              border: "1px solid var(--border)",
-              padding: "4px 10px",
-              borderRadius: "6px",
-              fontSize: "12px",
-              fontWeight: "bold",
-              cursor: "pointer"
-            }}
-          >
-            👤 Switch to User Login
-          </button>
-        </div>
+    <div className="auth-wrapper admin-theme">
+      {/* Dynamic Floating Blobs */}
+      <div className="glowing-blobs-container">
+        <div className="glowing-blob blob-1"></div>
+        <div className="glowing-blob blob-2"></div>
+        <div className="glowing-blob blob-3"></div>
+      </div>
 
-        {/* Admin Brand Header */}
-        <div className="auth-header">
-          <div className="auth-brand">
-            <div className="brand-icon" style={{ background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)" }}>🔑</div>
-            <span className="brand-title">PortalX Admin</span>
+      <div className="auth-container">
+        {/* Left Side: Scrollytelling Showcase */}
+        <div className="auth-promo-panel">
+          <div className="promo-header">
+            <div className="promo-brand-icon">🔑</div>
+            <span className="promo-brand-name">PortalX Admin</span>
           </div>
-          <h2 className="auth-welcome" style={{ color: "var(--text-main)" }}>
-            Admin Access
-          </h2>
-          <p className="auth-subtitle">
-            Sign in with authorized administrator credentials
-          </p>
-        </div>
 
-        {/* Alert Notification */}
-        {alert && (
-          <div className={`auth-alert ${alert.type}`}>
-            <span>{alert.type === "error" ? "⚠️" : "✅"}</span>
-            {alert.message}
-          </div>
-        )}
+          <div className="scrollytelling-slider">
+            <div className={`scrolly-slide ${slideIndex === 0 ? "active" : ""}`}>
+              <h3>Administrative Authority Control</h3>
+              <p>
+                Configure roles, inspect database registries, and execute clean synchronization protocols 
+                on all user fields safely.
+              </p>
+            </div>
+            <div className={`scrolly-slide ${slideIndex === 1 ? "active" : ""}`}>
+              <h3>Secure Administrative Auditing</h3>
+              <p>
+                Track health parameters, review endpoint latency breakdown lists, and inspect secure SQL 
+                audit streams from the cockpit.
+              </p>
+            </div>
+            <div className={`scrolly-slide ${slideIndex === 2 ? "active" : ""}`}>
+              <h3>Data Export & Sync Utilities</h3>
+              <p>
+                Generate spreadsheet logs for user profiles, review active connection pools, and manage 
+                server states cleanly.
+              </p>
+            </div>
 
-        {/* Admin Form */}
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label className="form-label">Admin Email</label>
-            <div className="input-box">
-              <span className="field-icon">🛡️</span>
-              <input
-                type="email"
-                className="input-field"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+            <div className="scrolly-indicators">
+              {[0, 1, 2].map((idx) => (
+                <div
+                  key={idx}
+                  className={`indicator-dot ${slideIndex === idx ? "active" : ""}`}
+                  onClick={() => setSlideIndex(idx)}
+                ></div>
+              ))}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Admin Security Password</label>
-            <div className="input-box">
-              <span className="field-icon">🔒</span>
-              <input
-                type={showPassword ? "text" : "password"}
-                className="input-field"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+          <div className="promo-footer">
+            &copy; 2026 PortalX Admin Panel. Confined area.
+          </div>
+        </div>
+
+        {/* Right Side: Form Card */}
+        <div className="auth-form-panel">
+          <div className="auth-card">
+            {/* Portal Switch Header */}
+            <div className="portal-switch-header">
+              <span className="portal-label" style={{ color: "#ef4444" }}>🛡️ ADMINISTRATOR PORTAL</span>
               <button
                 type="button"
-                className="toggle-password"
-                onClick={() => setShowPassword(!showPassword)}
+                className="portal-switch-btn"
+                onClick={onSwitchToUser}
+                style={{ color: "var(--primary)" }}
               >
-                {showPassword ? "Hide" : "Show"}
+                👤 Switch to User Login
               </button>
             </div>
+
+            {/* Welcome Text */}
+            <h2 className="auth-welcome">Admin Access</h2>
+            <p className="auth-subtitle">Sign in with authorized administrator credentials</p>
+
+            {/* Alert Banner */}
+            {alert && (
+              <div className={`auth-alert ${alert.type}`}>
+                <span>{alert.type === "error" ? "⚠️" : "✅"}</span>
+                {alert.message}
+              </div>
+            )}
+
+            {/* Admin Form */}
+            <form onSubmit={handleSubmit} className="auth-form">
+              <div className="form-group">
+                <label className="form-label">Admin Email</label>
+                <div className="input-box">
+                  <input
+                    type="email"
+                    className="input-field"
+                    placeholder="admin@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <span className="field-icon">🛡️</span>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Admin Security Password</label>
+                <div className="input-box">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="input-field"
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <span className="field-icon">🔒</span>
+                  <button
+                    type="button"
+                    className="toggle-password"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? "Authenticating Admin..." : "Authenticate Admin Access →"}
+              </button>
+            </form>
+
+            {/* Admin Credentials Hint */}
+            <div className="demo-hint">
+              <span>💡 <strong>Default Admin Account:</strong></span>
+              <span>Email: <code>admin@example.com</code> | Pass: <code>admin123</code></span>
+            </div>
           </div>
-
-          <button
-            type="submit"
-            className="submit-btn"
-            disabled={loading}
-            style={{ background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)", boxShadow: "0 4px 12px rgba(220, 38, 38, 0.3)" }}
-          >
-            {loading ? "Authenticating Admin..." : "Authenticate Admin Access →"}
-          </button>
-        </form>
-
-        {/* Admin Credentials Hint */}
-        <div className="demo-hint" style={{ marginTop: "20px", background: "#fee2e2", borderColor: "rgba(239,68,68,0.3)", color: "#991b1b" }}>
-          <span>💡 <strong>Default Admin Account:</strong></span>
-          <span>Email: <code>admin@example.com</code> | Pass: <code>admin123</code></span>
         </div>
       </div>
     </div>
