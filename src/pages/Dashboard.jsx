@@ -38,6 +38,10 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Performance Analytics state
+  const [analyticsTab, setAnalyticsTab] = useState("latency"); // 'latency' | 'volume' | 'errors'
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
   // Data Lists
   const [teamMembers, setTeamMembers] = useState([
     { id: 1, name: "System Admin", email: "admin@example.com", role: "admin", status: 1, date: "System" },
@@ -553,21 +557,350 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
           )}
 
           {/* ANALYTICS VIEW */}
-          {activeMenu === "analytics" && (
-            <div className="card">
-              <div className="card-title">Performance Analytics</div>
-              <div className="chart-container">
-                <svg className="chart-svg" viewBox="0 0 500 150">
-                  <rect x="30" y="40" width="35" height="90" fill="#6366f1" rx="4" />
-                  <rect x="90" y="20" width="35" height="110" fill="#6366f1" rx="4" />
-                  <rect x="150" y="55" width="35" height="75" fill="#6366f1" rx="4" />
-                  <rect x="210" y="15" width="35" height="115" fill="#4f46e5" rx="4" />
-                  <rect x="270" y="45" width="35" height="85" fill="#6366f1" rx="4" />
-                  <line x1="20" y1="130" x2="450" y2="130" stroke="var(--border)" strokeWidth="1" />
-                </svg>
+          {activeMenu === "analytics" && (() => {
+            const performanceData = {
+              latency: {
+                title: "API Response Time",
+                unit: "ms",
+                color: "#6366f1",
+                avg: "58 ms",
+                peak: "89 ms",
+                status: "Optimal",
+                maxVal: 100,
+                gridValues: [0, 25, 50, 75, 100],
+                points: [
+                  { time: "12:00 PM", value: 42 },
+                  { time: "01:00 PM", value: 55 },
+                  { time: "02:00 PM", value: 89 },
+                  { time: "03:00 PM", value: 48 },
+                  { time: "04:00 PM", value: 62 },
+                  { time: "05:00 PM", value: 45 }
+                ]
+              },
+              volume: {
+                title: "Request Volume",
+                unit: " rpm",
+                color: "#10b981",
+                avg: "186 rpm",
+                peak: "310 rpm",
+                status: "High Traffic",
+                maxVal: 400,
+                gridValues: [0, 100, 200, 300, 400],
+                points: [
+                  { time: "12:00 PM", value: 120 },
+                  { time: "01:00 PM", value: 180 },
+                  { time: "02:00 PM", value: 310 },
+                  { time: "03:00 PM", value: 140 },
+                  { time: "04:00 PM", value: 210 },
+                  { time: "05:00 PM", value: 160 }
+                ]
+              },
+              errors: {
+                title: "HTTP Error Rate",
+                unit: "%",
+                color: "#ef4444",
+                avg: "0.36%",
+                peak: "1.50%",
+                status: "Healthy",
+                maxVal: 2.0,
+                gridValues: [0, 0.5, 1.0, 1.5, 2.0],
+                points: [
+                  { time: "12:00 PM", value: 0.1 },
+                  { time: "01:00 PM", value: 0.2 },
+                  { time: "02:00 PM", value: 1.5 },
+                  { time: "03:00 PM", value: 0.3 },
+                  { time: "04:00 PM", value: 0.1 },
+                  { time: "05:00 PM", value: 0.0 }
+                ]
+              }
+            };
+
+            const currentData = performanceData[analyticsTab];
+            const hoveredPoint = hoveredIndex !== null ? currentData.points[hoveredIndex] : null;
+
+            const endpointsPerformance = [
+              { path: "/webservices/users/get-all-users", method: "POST", calls: 412, avgTime: "45ms", errorRate: "0.0%" },
+              { path: "/webservices/users/add-users", method: "POST", calls: 48, avgTime: "128ms", errorRate: "0.0%" },
+              { path: "/webservices/users/update-user", method: "POST", calls: 24, avgTime: "115ms", errorRate: "4.1%" },
+              { path: "/webservices/users/delete-user", method: "POST", calls: 12, avgTime: "92ms", errorRate: "0.0%" },
+              { path: "/login", method: "POST", calls: 154, avgTime: "74ms", errorRate: "1.3%" },
+              { path: "/signup", method: "POST", calls: 32, avgTime: "88ms", errorRate: "0.0%" },
+              { path: "/api/health", method: "GET", calls: 1440, avgTime: "4ms", errorRate: "0.0%" }
+            ];
+
+            return (
+              <div className="analytics-dashboard">
+                {/* KPI Grid */}
+                <div className="analytics-kpi-grid">
+                  <div className="analytics-kpi-card">
+                    <div className="kpi-icon blue">⚡</div>
+                    <div>
+                      <div className="kpi-title">Average Latency</div>
+                      <div className="kpi-value">58 ms</div>
+                      <div className="kpi-trend positive">↓ 12% vs yesterday</div>
+                    </div>
+                  </div>
+                  <div className="analytics-kpi-card">
+                    <div className="kpi-icon green">📈</div>
+                    <div>
+                      <div className="kpi-title">Request Volume</div>
+                      <div className="kpi-value">186 RPM</div>
+                      <div className="kpi-trend positive">↑ 8% growth</div>
+                    </div>
+                  </div>
+                  <div className="analytics-kpi-card">
+                    <div className="kpi-icon red">⚠️</div>
+                    <div>
+                      <div className="kpi-title">HTTP Error Rate</div>
+                      <div className="kpi-value">0.36%</div>
+                      <div className="kpi-trend positive">Healthy</div>
+                    </div>
+                  </div>
+                  <div className="analytics-kpi-card">
+                    <div className="kpi-icon purple">💾</div>
+                    <div>
+                      <div className="kpi-title">Database Pool</div>
+                      <div className="kpi-value">Active</div>
+                      <div className="kpi-trend positive">100% connected</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Interactive Chart Card */}
+                <div className="card performance-chart-card">
+                  <div className="chart-card-header">
+                    <div className="chart-header-left">
+                      <span className="chart-card-title">Performance Analytics</span>
+                      <p className="chart-card-subtitle">Real-time system telemetry and load tracking</p>
+                    </div>
+                    <div className="analytics-tab-buttons">
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${analyticsTab === "latency" ? "active" : ""}`}
+                        onClick={() => setAnalyticsTab("latency")}
+                        style={{ borderColor: analyticsTab === "latency" ? "#6366f1" : "transparent" }}
+                      >
+                        API Latency
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${analyticsTab === "volume" ? "active" : ""}`}
+                        onClick={() => setAnalyticsTab("volume")}
+                        style={{ borderColor: analyticsTab === "volume" ? "#10b981" : "transparent" }}
+                      >
+                        Request Volume
+                      </button>
+                      <button
+                        type="button"
+                        className={`analytics-tab-btn ${analyticsTab === "errors" ? "active" : ""}`}
+                        onClick={() => setAnalyticsTab("errors")}
+                        style={{ borderColor: analyticsTab === "errors" ? "#ef4444" : "transparent" }}
+                      >
+                        Error Rates
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="performance-chart-body">
+                    <div className="chart-summary-sidebar">
+                      <div className="sidebar-metric">
+                        <span className="sidebar-metric-label">CURRENT METRIC</span>
+                        <span className="sidebar-metric-value" style={{ color: currentData.color }}>
+                          {currentData.title}
+                        </span>
+                      </div>
+                      <div className="sidebar-metric">
+                        <span className="sidebar-metric-label">AVERAGE</span>
+                        <span className="sidebar-metric-value">{currentData.avg}</span>
+                      </div>
+                      <div className="sidebar-metric">
+                        <span className="sidebar-metric-label">PEAK (6H)</span>
+                        <span className="sidebar-metric-value">{currentData.peak}</span>
+                      </div>
+                      <div className="sidebar-metric">
+                        <span className="sidebar-metric-label">STATUS</span>
+                        <span className="sidebar-metric-badge" style={{ backgroundColor: currentData.color + "20", color: currentData.color }}>
+                          {currentData.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="interactive-chart-container">
+                      {hoveredIndex !== null && hoveredPoint && (
+                        <div
+                          className="chart-tooltip"
+                          style={{
+                            borderLeftColor: currentData.color,
+                            left: `${50 + hoveredIndex * 86.6 + 8}px`,
+                            top: `${180 - (hoveredPoint.value / currentData.maxVal) * 160 - 55}px`
+                          }}
+                        >
+                          <div className="tooltip-time">{hoveredPoint.time}</div>
+                          <div className="tooltip-value">
+                            <span className="tooltip-dot" style={{ backgroundColor: currentData.color }}></span>
+                            {hoveredPoint.value}{currentData.unit}
+                          </div>
+                        </div>
+                      )}
+
+                      <svg className="performance-chart-svg" viewBox="0 0 600 220">
+                        {/* Horizontal Gridlines and Y-axis Labels */}
+                        {currentData.gridValues.map((v, idx) => {
+                          const y = 180 - (v / currentData.maxVal) * 160;
+                          return (
+                            <g key={idx}>
+                              <line
+                                x1="50"
+                                y1={y}
+                                x2="570"
+                                y2={y}
+                                stroke="var(--border)"
+                                strokeWidth="1"
+                                strokeDasharray="4 4"
+                              />
+                              <text
+                                x="42"
+                                y={y + 4}
+                                textAnchor="end"
+                                fontSize="10.5"
+                                fontWeight="500"
+                                fill="var(--text-light)"
+                              >
+                                {v}{currentData.unit}
+                              </text>
+                            </g>
+                          );
+                        })}
+
+                        {/* Baseline X-axis */}
+                        <line x1="50" y1="180" x2="570" y2="180" stroke="var(--border)" strokeWidth="1.5" />
+
+                        {/* Dynamic Bars */}
+                        {currentData.points.map((pt, idx) => {
+                          const colWidth = 86.6;
+                          const barWidth = 36;
+                          const barX = 50 + idx * colWidth + (colWidth - barWidth) / 2;
+                          const barHeight = (pt.value / currentData.maxVal) * 160;
+                          const barY = 180 - barHeight;
+                          const isHovered = hoveredIndex === idx;
+
+                          return (
+                            <g key={idx}>
+                              {/* Hover sensor zone (invisible wider rect for easier hovering) */}
+                              <rect
+                                x={50 + idx * colWidth}
+                                y="20"
+                                width={colWidth}
+                                height="160"
+                                fill="transparent"
+                                style={{ cursor: "pointer" }}
+                                onMouseEnter={() => setHoveredIndex(idx)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                              />
+                              {/* Actual Visual Bar */}
+                              <rect
+                                x={barX}
+                                y={barY}
+                                width={barWidth}
+                                height={Math.max(barHeight, 2)}
+                                fill={isHovered ? currentData.color : currentData.color + "cc"}
+                                rx="5"
+                                style={{
+                                  transition: "all 0.2s ease",
+                                  cursor: "pointer"
+                                }}
+                                onMouseEnter={() => setHoveredIndex(idx)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                              />
+                              {/* Bar Top Circle Accent on Hover */}
+                              {isHovered && (
+                                <circle
+                                  cx={barX + barWidth / 2}
+                                  cy={barY}
+                                  r="4"
+                                  fill="#ffffff"
+                                  stroke={currentData.color}
+                                  strokeWidth="2.5"
+                                />
+                              )}
+                              {/* X-axis Label */}
+                              <text
+                                x={barX + barWidth / 2}
+                                y="198"
+                                textAnchor="middle"
+                                fontSize="11"
+                                fill="var(--text-light)"
+                                fontWeight="500"
+                              >
+                                {pt.time}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Endpoint Performance Table */}
+                <div className="card">
+                  <div className="card-title">Endpoint Latency Breakdown</div>
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>HTTP Method</th>
+                          <th>API Endpoint Path</th>
+                          <th>Request Count</th>
+                          <th>Avg Response Time</th>
+                          <th>Error Rate</th>
+                          <th>Service Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {endpointsPerformance.map((ep, idx) => (
+                          <tr key={idx}>
+                            <td>
+                              <span style={{
+                                padding: "3px 8px",
+                                borderRadius: "4px",
+                                fontSize: "10px",
+                                fontWeight: "bold",
+                                backgroundColor: ep.method === "POST" ? "#eff6ff" : "#f0fdf4",
+                                color: ep.method === "POST" ? "#2563eb" : "#16a34a",
+                                border: `1px solid ${ep.method === "POST" ? "#bfdbfe" : "#bbf7d0"}`
+                              }}>
+                                {ep.method}
+                              </span>
+                            </td>
+                            <td>
+                              <code>{ep.path}</code>
+                            </td>
+                            <td>{ep.calls} requests</td>
+                            <td>
+                              <strong>{ep.avgTime}</strong>
+                            </td>
+                            <td>
+                              <span style={{
+                                color: ep.errorRate === "0.0%" ? "var(--success)" : "var(--danger)"
+                              }}>
+                                {ep.errorRate}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={`badge ${parseFloat(ep.errorRate) < 2.0 ? "active" : "offline"}`}>
+                                {parseFloat(ep.errorRate) < 2.0 ? "Operational" : "Degraded"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* USERS MANAGEMENT VIEW */}
           {activeMenu === "users" && (
