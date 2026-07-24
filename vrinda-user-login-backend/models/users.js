@@ -134,11 +134,10 @@ const getAllUsers = async () => {
 
 const deleteUserModel = async (user_id) => {
   try {
-    const result = await Users.update(
-      { status: 0 },
-      { where: { id: user_id } }
-    );
-    return result[0] > 0;
+    const result = await Users.destroy({
+      where: { id: user_id }
+    });
+    return result > 0;
   } catch (error) {
     console.log("Error deleteUser - ", error);
     return false;
