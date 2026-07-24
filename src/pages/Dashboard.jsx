@@ -73,8 +73,7 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   const fetchUsersFromBackend = async () => {
     try {
       const res = await fetch("http://localhost:4000/webservices/users/get-all-users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
+        method: "GET"
       });
       if (res.ok) {
         const data = await res.json();
@@ -196,7 +195,6 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
-  // Handle Member Delete (Admin Backend Call)
   const handleDeleteMember = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`)) return;
 
@@ -208,13 +206,18 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
       });
 
       if (res.ok) {
-        showToast(`Deleted user "${name}" from database`, "info");
-        fetchUsersFromBackend();
+        const data = await res.json().catch(() => ({}));
+        if (data.status === 1) {
+          showToast(`Deleted user "${name}" from database`, "info");
+          fetchUsersFromBackend();
+        } else {
+          showToast(data.message || `Failed to delete user "${name}"`, "error");
+        }
       } else {
         setTeamMembers(teamMembers.filter(m => m.id !== id));
         showToast(`Removed ${name}`, "info");
       }
-    } catch (err) {
+    } catch {
       setTeamMembers(teamMembers.filter(m => m.id !== id));
       showToast(`Removed ${name}`, "info");
     }
