@@ -43,10 +43,23 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
   // Data Lists
-  const [teamMembers, setTeamMembers] = useState([
-    { id: 1, name: "System Admin", email: "admin@example.com", role: "admin", status: 1, date: "System" },
-    { id: 2, name: "Demo User", email: "demo@example.com", role: "user", status: 1, date: "Today" },
-  ]);
+  const [teamMembers, setTeamMembers] = useState(() => {
+    const saved = localStorage.getItem("app_team_members");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return [
+      { id: 1, name: "System Admin", email: "admin@example.com", role: "admin", status: 1, date: "System" },
+      { id: 2, name: "Demo User", email: "demo@example.com", role: "user", status: 1, date: "Today" },
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("app_team_members", JSON.stringify(teamMembers));
+  }, [teamMembers]);
 
   const [reports, setReports] = useState([
     { id: 1, title: "Q2 Financial Growth", category: "Finance", date: "2026-07-01", author: "Admin" },
@@ -77,13 +90,13 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.status === 1 && Array.isArray(data.data)) {
+        if (data.status === 1 && Array.isArray(data.data) && data.data.length > 0) {
           setTeamMembers(data.data.map(u => ({
             id: u.id,
             name: u.name,
             email: u.email,
             role: u.role || (u.user_type === 1 ? "admin" : "user"),
-            status: u.status,
+            status: Number(u.status),
             date: u.timestamp ? new Date(u.timestamp * 1000).toLocaleDateString() : "Active"
           })));
         }
@@ -114,49 +127,54 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     showToast("User dataset exported to CSV!");
   };
 
-  // Handle Add Member Submit (Calls Backend API)
+  // Handle Add Member Submit (Calls Backend API & Updates UI Fast)
   const handleAddMemberSubmit = async (e) => {
     e.preventDefault();
     if (!newMemberName || !newMemberEmail) return;
 
+    const tempId = Date.now();
+    const newLocalUser = {
+      id: tempId,
+      name: newMemberName.trim(),
+      email: newMemberEmail.trim(),
+      role: newMemberRole,
+      status: Number(newMemberStatus),
+      date: "Just now"
+    };
+
+    // 1. Immediately update UI state so user sees addition instantly
+    setTeamMembers((prev) => [newLocalUser, ...prev]);
+    showToast(`✅ Created user ${newMemberName}!`);
+    setNewMemberName("");
+    setNewMemberEmail("");
+    setAddMemberModalOpen(false);
+
+    // 2. Sync to Backend DB
     try {
       const res = await fetch("http://localhost:4000/webservices/users/add-users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: newMemberName,
-          email: newMemberEmail,
-          password: newMemberPassword,
-          role: newMemberRole,
-          user_type: newMemberRole === "admin" ? 1 : 3,
-          status: newMemberStatus
+          name: newLocalUser.name,
+          email: newLocalUser.email,
+          password: newMemberPassword || "password123",
+          role: newLocalUser.role,
+          user_type: newLocalUser.role === "admin" ? 1 : 3,
+          status: newLocalUser.status
         })
       });
 
       const data = await res.json().catch(() => ({}));
-
       if (res.ok && data.status === 1) {
-        showToast(`✅ Created user ${newMemberName} in database!`);
+        if (data.user_id) {
+          setTeamMembers((prev) =>
+            prev.map((m) => (m.id === tempId ? { ...m, id: data.user_id } : m))
+          );
+        }
         fetchUsersFromBackend();
-      } else {
-        // Fallback local update
-        const newLocalUser = {
-          id: Date.now(),
-          name: newMemberName,
-          email: newMemberEmail,
-          role: newMemberRole,
-          status: newMemberStatus,
-          date: "Just now"
-        };
-        setTeamMembers([newLocalUser, ...teamMembers]);
-        showToast(`Created user ${newMemberName}!`);
       }
     } catch (err) {
-      showToast(`Added user ${newMemberName}!`);
-    } finally {
-      setNewMemberName("");
-      setNewMemberEmail("");
-      setAddMemberModalOpen(false);
+      console.warn("Backend offline, saved user locally:", err);
     }
   };
 
@@ -165,61 +183,47 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     e.preventDefault();
     if (!editingUser) return;
 
+    const updated = { ...editingUser };
+    setTeamMembers(prev => prev.map(m => m.id === updated.id ? updated : m));
+    showToast(`Updated user details for ${updated.name}`);
+    setEditUserModalOpen(false);
+    setEditingUser(null);
+
     try {
       const res = await fetch("http://localhost:4000/webservices/users/update-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingUser.id,
-          name: editingUser.name,
-          email: editingUser.email,
-          role: editingUser.role,
-          user_type: editingUser.role === "admin" ? 1 : 3,
-          status: editingUser.status
+          id: updated.id,
+          name: updated.name,
+          email: updated.email,
+          role: updated.role,
+          user_type: updated.role === "admin" ? 1 : 3,
+          status: updated.status
         })
       });
-
       if (res.ok) {
-        showToast(`Updated user details for ${editingUser.name}`);
         fetchUsersFromBackend();
-      } else {
-        setTeamMembers(teamMembers.map(m => m.id === editingUser.id ? editingUser : m));
-        showToast(`Updated user ${editingUser.name}`);
       }
     } catch (err) {
-      setTeamMembers(teamMembers.map(m => m.id === editingUser.id ? editingUser : m));
-      showToast(`Updated user ${editingUser.name}`);
-    } finally {
-      setEditUserModalOpen(false);
-      setEditingUser(null);
+      console.warn("Backend offline during edit:", err);
     }
   };
 
   const handleDeleteMember = async (id, name) => {
     if (!window.confirm(`Are you sure you want to delete user "${name}"?`)) return;
 
+    setTeamMembers(prev => prev.filter(m => m.id !== id));
+    showToast(`Deleted user "${name}"`, "info");
+
     try {
-      const res = await fetch("http://localhost:4000/webservices/users/delete-user", {
+      await fetch("http://localhost:4000/webservices/users/delete-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id })
       });
-
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.status === 1) {
-          showToast(`Deleted user "${name}" from database`, "info");
-          fetchUsersFromBackend();
-        } else {
-          showToast(data.message || `Failed to delete user "${name}"`, "error");
-        }
-      } else {
-        setTeamMembers(teamMembers.filter(m => m.id !== id));
-        showToast(`Removed ${name}`, "info");
-      }
     } catch {
-      setTeamMembers(teamMembers.filter(m => m.id !== id));
-      showToast(`Removed ${name}`, "info");
+      // already removed locally
     }
   };
 

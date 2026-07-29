@@ -10,12 +10,15 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
   host: DB_HOST,
   port: DB_PORT,
   dialect: 'mysql',
-  logging: false, // set to console.log to see SQL queries
+  logging: false,
+  dialectOptions: {
+    connectTimeout: 2000
+  },
   pool: {
-    max: 10,
+    max: 5,
     min: 0,
-    acquire: 30000,
-    idle: 10000
+    acquire: 2000,
+    idle: 2000
   }
 });
 

@@ -12,17 +12,17 @@ const createUser = async (req, reply) => {
         }
 
         const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const hashedPassword = await bcrypt.hash(password || 'password123', saltRounds);
 
         const userData = {
             name,
             email,
             password: hashedPassword,
-            role,
-            user_type,
+            role: role || 'user',
+            user_type: user_type || (role === 'admin' ? 1 : 3),
             profile_pic: profile_pic || null,
             cover_pic: cover_pic || null,
-            status: status || 1,
+            status: status !== undefined ? Number(status) : 1,
             timestamp: moment().unix(),
             added_by: added_by || 1,
             updated_on: moment().unix()
