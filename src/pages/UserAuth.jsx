@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Modal } from "../components/Modal";
 import "../styles/Login.css";
 
-function UserAuth({ onSuccess, onSwitchToAdmin }) {
+function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
   const [activeTab, setActiveTab] = useState("login"); // 'login' or 'register'
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -180,17 +180,26 @@ function UserAuth({ onSuccess, onSwitchToAdmin }) {
         {/* Right Side: Glassmorphism Card */}
         <div className="auth-form-panel">
           <div className="auth-card">
-            {/* Portal Switch Header */}
+            {/* Portal Switch & Theme Header */}
             <div className="portal-switch-header">
-              <span className="portal-label" style={{ color: "var(--primary)" }}>👤 USER PORTAL</span>
-              <button
-                type="button"
-                className="portal-switch-btn"
-                onClick={onSwitchToAdmin}
-                style={{ color: "#ef4444" }}
-              >
-                🔑 Switch to Admin Login
-              </button>
+              <span className="portal-label portal-label-user">👤 USER PORTAL</span>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="theme-toggle-btn"
+                  onClick={onToggleTheme}
+                  title="Toggle Light / Dark Theme"
+                >
+                  {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+                </button>
+                <button
+                  type="button"
+                  className="portal-switch-btn"
+                  onClick={onSwitchToAdmin}
+                >
+                  🔑 Switch to Admin
+                </button>
+              </div>
             </div>
 
             {/* Welcome Text */}
@@ -270,7 +279,7 @@ function UserAuth({ onSuccess, onSwitchToAdmin }) {
                   {activeTab === "login" && (
                     <button
                       type="button"
-                      style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "12px", cursor: "pointer", fontWeight: "600" }}
+                      className="forgot-link"
                       onClick={() => { setForgotModalOpen(true); setForgotSubmitted(false); setForgotEmail(email); }}
                     >
                       Forgot Password?

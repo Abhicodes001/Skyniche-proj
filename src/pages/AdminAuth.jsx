@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "../styles/Login.css";
 
-function AdminAuth({ onSuccess, onSwitchToUser }) {
+function AdminAuth({ onSuccess, onSwitchToUser, isDarkMode, onToggleTheme }) {
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
@@ -135,17 +135,26 @@ function AdminAuth({ onSuccess, onSwitchToUser }) {
         {/* Right Side: Form Card */}
         <div className="auth-form-panel">
           <div className="auth-card">
-            {/* Portal Switch Header */}
+            {/* Portal Switch & Theme Header */}
             <div className="portal-switch-header">
-              <span className="portal-label" style={{ color: "#ef4444" }}>🛡️ ADMINISTRATOR PORTAL</span>
-              <button
-                type="button"
-                className="portal-switch-btn"
-                onClick={onSwitchToUser}
-                style={{ color: "var(--primary)" }}
-              >
-                👤 Switch to User Login
-              </button>
+              <span className="portal-label portal-label-admin">🛡️ ADMINISTRATOR PORTAL</span>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="theme-toggle-btn"
+                  onClick={onToggleTheme}
+                  title="Toggle Light / Dark Theme"
+                >
+                  {isDarkMode ? "☀️ Light" : "🌙 Dark"}
+                </button>
+                <button
+                  type="button"
+                  className="portal-switch-btn"
+                  onClick={onSwitchToUser}
+                >
+                  👤 Switch to User
+                </button>
+              </div>
             </div>
 
             {/* Welcome Text */}

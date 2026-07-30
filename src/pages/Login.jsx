@@ -240,14 +240,14 @@ function Login({ onSuccess }) {
             <button
               type="button"
               onClick={fillAdminDemo}
-              style={{ padding: "4px 8px", background: "white", border: "1px solid var(--primary)", borderRadius: "4px", color: "var(--primary)", fontSize: "11px", fontWeight: "bold" }}
+              className="demo-preset-btn"
             >
               🔑 Fill Admin (`admin@example.com`)
             </button>
             <button
               type="button"
               onClick={fillUserDemo}
-              style={{ padding: "4px 8px", background: "white", border: "1px solid #64748b", borderRadius: "4px", color: "#64748b", fontSize: "11px", fontWeight: "bold" }}
+              className="demo-preset-btn"
             >
               👤 Fill User (`demo@example.com`)
             </button>
