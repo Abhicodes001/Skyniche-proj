@@ -12,14 +12,14 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  // Registered emails memory for seamless client validation
+  const [selectedRole, setSelectedRole] = useState("viewer"); // 'viewer' | 'editor' | 'admin'
+
+  // Registered emails & roles memory for client validation fallback
   const [registeredUsers, setRegisteredUsers] = useState([
-    "viewer@example.com",
-    "editor@example.com",
-    "admin@example.com",
-    "demo@example.com",
-    "sarah.j@example.com",
-    "m.chen@example.com"
+    { email: "viewer@example.com", role: "viewer", user_type: 3 },
+    { email: "editor@example.com", role: "editor", user_type: 2 },
+    { email: "admin@example.com", role: "admin", user_type: 1 },
+    { email: "demo@example.com", role: "viewer", user_type: 3 }
   ]);
 
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
@@ -54,8 +54,10 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
 
     try {
       if (activeTab === "login") {
-        // Strict Check: User MUST be registered first
-        const isKnownUser = registeredUsers.includes(email.toLowerCase()) || email === "demo@example.com";
+        const knownUserObj = registeredUsers.find(u =>
+          typeof u === "string" ? u === email.toLowerCase() : u.email === email.toLowerCase()
+        );
+        const isKnownUser = !!knownUserObj || email === "demo@example.com";
 
         // Try backend login API
         const response = await fetch("http://localhost:4000/login", {
@@ -66,9 +68,19 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
 
         if (response && response.ok) {
           const data = await response.json();
-          const userObj = data.user || { name: email.split("@")[0], email, role: "user" };
+          const roleFromBackend = data.user?.role || (knownUserObj && knownUserObj.role) || (email.includes("admin") ? "admin" : email.includes("editor") ? "editor" : "viewer");
+          const userTypeFromBackend = data.user?.user_type || (roleFromBackend === "admin" ? 1 : roleFromBackend === "editor" ? 2 : 3);
+          
+          const userObj = {
+            id: data.user?.id,
+            name: data.user?.name || email.split("@")[0],
+            email: data.user?.email || email,
+            role: roleFromBackend,
+            user_type: userTypeFromBackend
+          };
+
           if (rememberMe) localStorage.setItem("user_session", JSON.stringify(userObj));
-          setAlert({ type: "success", message: "Login successful! Redirecting..." });
+          setAlert({ type: "success", message: `Login successful! Accessing Dashboard as ${userObj.role.toUpperCase()}...` });
           setTimeout(() => onSuccess(userObj), 600);
           return;
         }
@@ -89,32 +101,34 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
           return;
         }
 
-        // Fallback for registered demo user
-        const userObj = { name: email.split("@")[0], email, role: "user" };
+        // Fallback for registered local user
+        const localRole = (knownUserObj && knownUserObj.role) || (email.includes("admin") ? "admin" : email.includes("editor") ? "editor" : "viewer");
+        const localUserType = localRole === "admin" ? 1 : localRole === "editor" ? 2 : 3;
+        const userObj = { name: email.split("@")[0], email, role: localRole, user_type: localUserType };
         if (rememberMe) localStorage.setItem("user_session", JSON.stringify(userObj));
-        setAlert({ type: "success", message: "Login successful! Opening dashboard..." });
+        setAlert({ type: "success", message: `Login successful! Opening dashboard as ${localRole.toUpperCase()}...` });
         setTimeout(() => onSuccess(userObj), 600);
 
       } else {
         // REGISTER TAB
+        const userTypeToRegister = selectedRole === "admin" ? 1 : selectedRole === "editor" ? 2 : 3;
         const response = await fetch("http://localhost:4000/signup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password, role: "user" }),
+          body: JSON.stringify({ name, email, password, role: selectedRole, user_type: userTypeToRegister }),
         }).catch(() => null);
 
+        const newRegObj = { email: email.toLowerCase(), role: selectedRole, user_type: userTypeToRegister };
+        setRegisteredUsers(prev => [...prev, newRegObj]);
+
         if (response && response.ok) {
-          const data = await response.json();
-          const newUserObj = data.user || { name, email, role: "user" };
-          setRegisteredUsers([...registeredUsers, email.toLowerCase()]);
-          setAlert({ type: "success", message: "✅ Registration successful! You can now Sign In." });
+          setAlert({ type: "success", message: `✅ Registration successful as ${selectedRole.toUpperCase()}! Please Sign In now.` });
           setActiveTab("login");
           return;
         }
 
-        // Add to local registered users list
-        setRegisteredUsers([...registeredUsers, email.toLowerCase()]);
-        setAlert({ type: "success", message: "✅ Account registered successfully! Please Sign In now." });
+        // Add to local registered users list fallback
+        setAlert({ type: "success", message: `✅ Account registered as ${selectedRole.toUpperCase()}! Please Sign In now.` });
         setActiveTab("login");
       }
     } catch (err) {
@@ -245,20 +259,51 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
             {/* Form */}
             <form onSubmit={handleSubmit} className="auth-form">
               {activeTab === "register" && (
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <div className="input-box">
-                    <input
-                      type="text"
-                      className="input-field"
-                      placeholder="John Doe"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
-                    <span className="field-icon">👤</span>
+                <>
+                  <div className="form-group">
+                    <label className="form-label">Full Name</label>
+                    <div className="input-box">
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="John Doe"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                      <span className="field-icon">👤</span>
+                    </div>
                   </div>
-                </div>
+
+                  <div className="role-selector-container">
+                    <label className="form-label">Select Account Role & Permissions</label>
+                    <div className="role-selector-grid">
+                      <div
+                        className={`role-option-card ${selectedRole === "viewer" ? "active-viewer" : ""}`}
+                        onClick={() => setSelectedRole("viewer")}
+                      >
+                        <span className="role-option-title">👁️ Viewer</span>
+                        <span className="role-option-desc">Read-Only</span>
+                      </div>
+
+                      <div
+                        className={`role-option-card ${selectedRole === "editor" ? "active-editor" : ""}`}
+                        onClick={() => setSelectedRole("editor")}
+                      >
+                        <span className="role-option-title">✏️ Editor</span>
+                        <span className="role-option-desc">Add & Edit</span>
+                      </div>
+
+                      <div
+                        className={`role-option-card ${selectedRole === "admin" ? "active-admin" : ""}`}
+                        onClick={() => setSelectedRole("admin")}
+                      >
+                        <span className="role-option-title">⚡ Admin</span>
+                        <span className="role-option-desc">Full Control</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="form-group">

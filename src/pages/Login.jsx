@@ -12,6 +12,8 @@ function Login({ onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null); // { type: 'error' | 'success', message: '' }
 
+  const [selectedRole, setSelectedRole] = useState("viewer"); // 'viewer' | 'editor' | 'admin'
+
   // Forgot password modal state
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
@@ -56,9 +58,10 @@ function Login({ onSuccess }) {
         ? "http://localhost:4000/login"
         : "http://localhost:4000/signup";
 
+      const userTypeToRegister = selectedRole === "admin" ? 1 : selectedRole === "editor" ? 2 : 3;
       const payload = activeTab === "login"
         ? { email, password }
-        : { name, email, password };
+        : { name, email, password, role: selectedRole, user_type: userTypeToRegister };
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -69,7 +72,13 @@ function Login({ onSuccess }) {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && (data.status === 1 || data.user)) {
-        const userObj = data.user || { name: name || email.split("@")[0], email, role: email.includes("admin") ? "admin" : "user" };
+        const fallbackRole = activeTab === "register" ? selectedRole : (email.includes("admin") ? "admin" : email.includes("editor") ? "editor" : "viewer");
+        const userObj = data.user || {
+          name: name || email.split("@")[0],
+          email,
+          role: fallbackRole,
+          user_type: fallbackRole === "admin" ? 1 : fallbackRole === "editor" ? 2 : 3
+        };
         
         if (rememberMe) {
           localStorage.setItem("user_session", JSON.stringify(userObj));
@@ -157,20 +166,51 @@ function Login({ onSuccess }) {
         {/* Auth Form */}
         <form onSubmit={handleSubmit} className="auth-form">
           {activeTab === "register" && (
-            <div className="form-group">
-              <label className="form-label">Full Name</label>
-              <div className="input-box">
-                <span className="field-icon">👤</span>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+            <>
+              <div className="form-group">
+                <label className="form-label">Full Name</label>
+                <div className="input-box">
+                  <span className="field-icon">👤</span>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="role-selector-container">
+                <label className="form-label">Select Account Role & Permissions</label>
+                <div className="role-selector-grid">
+                  <div
+                    className={`role-option-card ${selectedRole === "viewer" ? "active-viewer" : ""}`}
+                    onClick={() => setSelectedRole("viewer")}
+                  >
+                    <span className="role-option-title">👁️ Viewer</span>
+                    <span className="role-option-desc">Read-Only</span>
+                  </div>
+
+                  <div
+                    className={`role-option-card ${selectedRole === "editor" ? "active-editor" : ""}`}
+                    onClick={() => setSelectedRole("editor")}
+                  >
+                    <span className="role-option-title">✏️ Editor</span>
+                    <span className="role-option-desc">Add & Edit</span>
+                  </div>
+
+                  <div
+                    className={`role-option-card ${selectedRole === "admin" ? "active-admin" : ""}`}
+                    onClick={() => setSelectedRole("admin")}
+                  >
+                    <span className="role-option-title">⚡ Admin</span>
+                    <span className="role-option-desc">Full Control</span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           <div className="form-group">

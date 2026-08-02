@@ -685,6 +685,75 @@
   color: var(--primary);
 }
 
+/* Role Selector Grid for Registration */
+.role-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.role-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.role-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+  text-align: center;
+}
+
+.role-option-card:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--primary);
+}
+
+.role-option-card.active-viewer {
+  border: 2px solid #6366f1;
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.role-option-card.active-editor {
+  border: 2px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.role-option-card.active-admin {
+  border: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--text-main);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.role-option-title {
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.role-option-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 /* ==========================================================================
    Dark Mode Overrides for Login & Authentication Components
    ========================================================================== */
