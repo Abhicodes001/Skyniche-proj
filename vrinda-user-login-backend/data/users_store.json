@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "System Admin",
+    "email": "admin@example.com",
+    "password": "$2a$10$tiRiN27ODHigXVd3zhGlxeP7rSS3CmCRm6Qyl5/VJ23F/NiMr9obO",
+    "role": "admin",
+    "user_type": 1,
+    "status": 1,
+    "timestamp": 1722600000,
+    "added_by": 1,
+    "updated_on": 1722600000
+  },
+  {
+    "id": 2,
+    "name": "Editor User",
+    "email": "editor@example.com",
+    "password": "$2a$10$PoaIel/1vhkYr4fYtwL9BOl3CGWKmYQw8FT4dpy14jIA1Aci853vy",
+    "role": "editor",
+    "user_type": 2,
+    "status": 1,
+    "timestamp": 1722600000,
+    "added_by": 1,
+    "updated_on": 1722600000
+  },
+  {
+    "id": 3,
+    "name": "Viewer User",
+    "email": "viewer@example.com",
+    "password": "$2a$10$PoaIel/1vhkYr4fYtwL9BOl3CGWKmYQw8FT4dpy14jIA1Aci853vy",
+    "role": "viewer",
+    "user_type": 3,
+    "status": 1,
+    "timestamp": 1722600000,
+    "added_by": 1,
+    "updated_on": 1722600000
+  }
+]

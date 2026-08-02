@@ -4,9 +4,15 @@ import "../styles/Dashboard.css";
 
 function Dashboard({ user, onLogout, onUpdateUser }) {
   const isAdmin = user?.role === "admin" || user?.user_type === 1 || user?.email?.includes("admin");
+  const isEditor = user?.role === "editor" || user?.user_type === 2;
+  const isViewer = !isAdmin && !isEditor;
+
+  const canAdd = isAdmin || isEditor;
+  const canEdit = isAdmin || isEditor;
+  const canDelete = isAdmin;
 
   // Navigation & UI State
-  const [activeMenu, setActiveMenu] = useState(isAdmin ? "admin" : "overview");
+  const [activeMenu, setActiveMenu] = useState(isAdmin || isEditor ? "admin" : "overview");
   const [timeframe, setTimeframe] = useState("month");
   const [searchTerm, setSearchTerm] = useState("");
   const [toast, setToast] = useState({ message: "", type: "info" });
@@ -22,10 +28,10 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   const [newMemberName, setNewMemberName] = useState("");
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [newMemberPassword, setNewMemberPassword] = useState("password123");
-  const [newMemberRole, setNewMemberRole] = useState("user");
+  const [newMemberRole, setNewMemberRole] = useState("viewer");
   const [newMemberStatus, setNewMemberStatus] = useState(1);
 
-  // Edit User Modal State (Admin)
+  // Edit User Modal State
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
@@ -53,7 +59,8 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     }
     return [
       { id: 1, name: "System Admin", email: "admin@example.com", role: "admin", status: 1, date: "System" },
-      { id: 2, name: "Demo User", email: "demo@example.com", role: "user", status: 1, date: "Today" },
+      { id: 2, name: "Editor User", email: "editor@example.com", role: "editor", status: 1, date: "Today" },
+      { id: 3, name: "Viewer User", email: "viewer@example.com", role: "viewer", status: 1, date: "Today" },
     ];
   });
 
@@ -262,19 +269,21 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
           <div className="brand-icon">⚡</div>
           <div>
             <span className="sidebar-brand-name">PortalX</span>
-            {isAdmin && <div style={{ fontSize: "10px", fontWeight: "bold", color: "var(--primary)", letterSpacing: "1px" }}>ADMIN CONTROL</div>}
+            {isAdmin && <div style={{ fontSize: "10px", fontWeight: "bold", color: "#ef4444", letterSpacing: "1px" }}>ADMIN CONTROL</div>}
+            {isEditor && <div style={{ fontSize: "10px", fontWeight: "bold", color: "#f59e0b", letterSpacing: "1px" }}>EDITOR ACCESS</div>}
+            {isViewer && <div style={{ fontSize: "10px", fontWeight: "bold", color: "var(--primary)", letterSpacing: "1px" }}>VIEWER MODE</div>}
           </div>
         </div>
 
         <nav className="sidebar-menu">
-          {isAdmin && (
+          {(isAdmin || isEditor) && (
             <button
               type="button"
               className={`menu-item ${activeMenu === "admin" ? "active" : ""}`}
               onClick={() => setActiveMenu("admin")}
               style={{ background: activeMenu === "admin" ? "var(--primary-light)" : "transparent", fontWeight: "bold" }}
             >
-              <span>🔑</span> Admin Control Center
+              <span>🔑</span> Directory Control Center
             </button>
           )}
 
@@ -340,10 +349,10 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
               {isDarkMode ? "☀️ Light" : "🌙 Dark"}
             </button>
 
-            <div className="avatar" style={{ background: isAdmin ? "#ef4444" : "var(--primary)" }}>{initials}</div>
+            <div className="avatar" style={{ background: isAdmin ? "#ef4444" : isEditor ? "#f59e0b" : "var(--primary)" }}>{initials}</div>
             <div className="user-info">
               <span className="user-name">
-                {profileName} {isAdmin && <span style={{ fontSize: "11px", color: "#ef4444", fontWeight: "bold" }}>(ADMIN)</span>}
+                {profileName} {isAdmin ? <span style={{ fontSize: "11px", color: "#ef4444", fontWeight: "bold" }}>(ADMIN)</span> : isEditor ? <span style={{ fontSize: "11px", color: "#f59e0b", fontWeight: "bold" }}>(EDITOR)</span> : <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: "bold" }}>(VIEWER)</span>}
               </span>
               <span className="user-role">{profileEmail}</span>
             </div>
@@ -356,14 +365,14 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
           <div className="view-header">
             <div>
               <h1 className="view-title">
-                {activeMenu === "admin" && "👑 Admin Control Center"}
+                {activeMenu === "admin" && "🔑 Control Center & Directory"}
                 {activeMenu === "overview" && "Dashboard Overview"}
                 {activeMenu === "analytics" && "Analytics & Performance"}
                 {activeMenu === "users" && "User & Team Management"}
                 {activeMenu === "settings" && "Account & System Settings"}
               </h1>
               <p className="view-subtitle">
-                Welcome back, {profileName}! {isAdmin ? "You have Full Administrative Access to manage users & database." : "Standard Member Dashboard."}
+                Welcome back, {profileName}! {isAdmin ? "⚡ Full Admin Control (Add, Edit & Delete active)." : isEditor ? "✏️ Editor Access (Add & Edit active, No Delete)." : "👁️ Viewer Access (Read-Only mode)." }
               </p>
             </div>
 
@@ -373,9 +382,11 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
                   <button type="button" className="secondary-btn" onClick={exportCSV}>
                     📥 Export CSV
                   </button>
-                  <button type="button" className="action-btn" onClick={() => setAddMemberModalOpen(true)}>
-                    <span>+</span> Add New User
-                  </button>
+                  {canAdd && (
+                    <button type="button" className="action-btn" onClick={() => setAddMemberModalOpen(true)}>
+                      <span>+</span> Add New User
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -458,10 +469,10 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
                               borderRadius: "6px",
                               fontSize: "12px",
                               fontWeight: "bold",
-                              background: m.role === "admin" ? "#fee2e2" : "var(--primary-light)",
-                              color: m.role === "admin" ? "#ef4444" : "var(--primary)"
+                              background: m.role === "admin" ? "#fee2e2" : m.role === "editor" ? "#fef3c7" : "var(--primary-light)",
+                              color: m.role === "admin" ? "#ef4444" : m.role === "editor" ? "#d97706" : "var(--primary)"
                             }}>
-                              {m.role ? m.role.toUpperCase() : "USER"}
+                              {m.role ? m.role.toUpperCase() : "VIEWER"}
                             </span>
                           </td>
                           <td>
@@ -471,23 +482,32 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
                           </td>
                           <td>{m.date}</td>
                           <td>
-                            <div style={{ display: "flex", gap: "8px" }}>
-                              <button
-                                type="button"
-                                className="action-icon-btn"
-                                onClick={() => { setEditingUser({ ...m }); setEditUserModalOpen(true); }}
-                                style={{ color: "var(--primary)" }}
-                              >
-                                ✏️ Edit
-                              </button>
-                              <button
-                                type="button"
-                                className="action-icon-btn"
-                                onClick={() => handleDeleteMember(m.id, m.name)}
-                                style={{ color: "#ef4444" }}
-                              >
-                                🗑️ Delete
-                              </button>
+                            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  className="action-icon-btn"
+                                  onClick={() => { setEditingUser({ ...m }); setEditUserModalOpen(true); }}
+                                  style={{ color: "var(--primary)" }}
+                                >
+                                  ✏️ Edit
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  className="action-icon-btn"
+                                  onClick={() => handleDeleteMember(m.id, m.name)}
+                                  style={{ color: "#ef4444" }}
+                                >
+                                  🗑️ Delete
+                                </button>
+                              )}
+                              {!canEdit && !canDelete && (
+                                <span style={{ fontSize: "12px", color: "var(--text-light)", fontStyle: "italic" }}>
+                                  👁️ Read-Only
+                                </span>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1023,8 +1043,9 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
               value={newMemberRole}
               onChange={(e) => setNewMemberRole(e.target.value)}
             >
-              <option value="user">User (Standard)</option>
-              <option value="admin">Admin (Full Control)</option>
+              <option value="viewer">👁️ Viewer (Read-Only access)</option>
+              <option value="editor">✏️ Editor (Read + Write access)</option>
+              <option value="admin">⚡ Admin (Full Control - Add, Edit, Delete)</option>
             </select>
           </div>
 
@@ -1034,7 +1055,7 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
         </form>
       </Modal>
 
-      {/* Modal: Edit User (Admin) */}
+      {/* Modal: Edit User */}
       <Modal
         isOpen={editUserModalOpen}
         onClose={() => { setEditUserModalOpen(false); setEditingUser(null); }}
@@ -1071,8 +1092,9 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
                 value={editingUser.role}
                 onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
               >
-                <option value="user">User (Standard)</option>
-                <option value="admin">Admin (Full Control)</option>
+                <option value="viewer">👁️ Viewer (Read-Only access)</option>
+                <option value="editor">✏️ Editor (Read + Write access)</option>
+                <option value="admin">⚡ Admin (Full Control - Add, Edit, Delete)</option>
               </select>
             </div>
 

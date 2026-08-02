@@ -14,6 +14,9 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
 
   // Registered emails memory for seamless client validation
   const [registeredUsers, setRegisteredUsers] = useState([
+    "viewer@example.com",
+    "editor@example.com",
+    "admin@example.com",
     "demo@example.com",
     "sarah.j@example.com",
     "m.chen@example.com"
@@ -327,8 +330,9 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
             {/* Demo Credentials Hint */}
             {activeTab === "login" && (
               <div className="demo-hint">
-                <span>💡 <strong>Note:</strong> Sign In works only for registered users.</span>
-                <span>Test account: <code>demo@example.com</code> | Pass: <code>password123</code></span>
+                <span>💡 <strong>Demo Accounts:</strong></span>
+                <span>👁️ Viewer: <code>viewer@example.com</code> | <code>password123</code></span>
+                <span>✏️ Editor: <code>editor@example.com</code> | <code>password123</code></span>
               </div>
             )}
           </div>

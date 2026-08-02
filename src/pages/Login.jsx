@@ -23,10 +23,16 @@ function Login({ onSuccess }) {
     setAlert({ type: "success", message: "Admin credentials pre-filled!" });
   };
 
-  const fillUserDemo = () => {
-    setEmail("demo@example.com");
+  const fillEditorDemo = () => {
+    setEmail("editor@example.com");
     setPassword("password123");
-    setAlert({ type: "success", message: "User credentials pre-filled!" });
+    setAlert({ type: "success", message: "Editor credentials pre-filled!" });
+  };
+
+  const fillViewerDemo = () => {
+    setEmail("viewer@example.com");
+    setPassword("password123");
+    setAlert({ type: "success", message: "Viewer credentials pre-filled!" });
   };
 
   const handleSubmit = async (e) => {
@@ -236,20 +242,27 @@ function Login({ onSuccess }) {
         {/* Quick Demo Pre-fill Options */}
         <div className="demo-hint">
           <span>💡 <strong>Quick Login Presets:</strong></span>
-          <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+          <div style={{ display: "flex", gap: "8px", marginTop: "6px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={fillViewerDemo}
+              className="demo-preset-btn"
+            >
+              👁️ Viewer (`viewer@example.com`)
+            </button>
+            <button
+              type="button"
+              onClick={fillEditorDemo}
+              className="demo-preset-btn"
+            >
+              ✏️ Editor (`editor@example.com`)
+            </button>
             <button
               type="button"
               onClick={fillAdminDemo}
               className="demo-preset-btn"
             >
-              🔑 Fill Admin (`admin@example.com`)
-            </button>
-            <button
-              type="button"
-              onClick={fillUserDemo}
-              className="demo-preset-btn"
-            >
-              👤 Fill User (`demo@example.com`)
+              ⚡ Admin (`admin@example.com`)
             </button>
           </div>
         </div>

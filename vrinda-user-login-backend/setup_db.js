@@ -42,7 +42,6 @@ async function initDatabase() {
     // 4. Seed Admin Account
     const adminEmail = 'admin@example.com';
     const adminExists = await Users.findOne({ where: { email: adminEmail } });
-
     if (!adminExists) {
       const adminPassword = bcrypt.hashSync('admin123', 10);
       await Users.create({
@@ -58,31 +57,46 @@ async function initDatabase() {
         updated_on: Math.floor(Date.now() / 1000)
       });
       console.log('✅ Admin user created: admin@example.com / admin123 (role: admin)');
-    } else {
-      console.log('ℹ️ Admin user already exists: admin@example.com');
     }
 
-    // 5. Seed Demo User Account
-    const demoEmail = 'demo@example.com';
-    const demoExists = await Users.findOne({ where: { email: demoEmail } });
-
-    if (!demoExists) {
-      const demoPassword = bcrypt.hashSync('password123', 10);
+    // 5. Seed Editor Account
+    const editorEmail = 'editor@example.com';
+    const editorExists = await Users.findOne({ where: { email: editorEmail } });
+    if (!editorExists) {
+      const editorPassword = bcrypt.hashSync('password123', 10);
       await Users.create({
-        name: 'Demo User',
-        email: demoEmail,
-        password: demoPassword,
-        role: 'user',
-        user_type: 3,
-        profile_pic: 'https://example.com/user.jpg',
+        name: 'Editor User',
+        email: editorEmail,
+        password: editorPassword,
+        role: 'editor',
+        user_type: 2,
+        profile_pic: 'https://example.com/editor.jpg',
         status: 1,
         timestamp: Math.floor(Date.now() / 1000),
         added_by: 1,
         updated_on: Math.floor(Date.now() / 1000)
       });
-      console.log('✅ Demo user created: demo@example.com / password123 (role: user)');
-    } else {
-      console.log('ℹ️ Demo user already exists: demo@example.com');
+      console.log('✅ Editor user created: editor@example.com / password123 (role: editor)');
+    }
+
+    // 6. Seed Viewer Account
+    const viewerEmail = 'viewer@example.com';
+    const viewerExists = await Users.findOne({ where: { email: viewerEmail } });
+    if (!viewerExists) {
+      const viewerPassword = bcrypt.hashSync('password123', 10);
+      await Users.create({
+        name: 'Viewer User',
+        email: viewerEmail,
+        password: viewerPassword,
+        role: 'viewer',
+        user_type: 3,
+        profile_pic: 'https://example.com/viewer.jpg',
+        status: 1,
+        timestamp: Math.floor(Date.now() / 1000),
+        added_by: 1,
+        updated_on: Math.floor(Date.now() / 1000)
+      });
+      console.log('✅ Viewer user created: viewer@example.com / password123 (role: viewer)');
     }
 
     console.log('\n🎉 Database setup and seeding complete!');
