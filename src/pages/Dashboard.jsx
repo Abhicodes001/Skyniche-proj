@@ -44,6 +44,14 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Add Profile in Settings State
+  const [addProfName, setAddProfName] = useState("");
+  const [addProfEmail, setAddProfEmail] = useState("");
+  const [addProfPassword, setAddProfPassword] = useState("");
+  const [addProfRole, setAddProfRole] = useState("viewer");
+  const [addProfTitle, setAddProfTitle] = useState("");
+  const [addProfAvatarColor, setAddProfAvatarColor] = useState("#4f46e5");
+
   // Performance Analytics state
   const [analyticsTab, setAnalyticsTab] = useState("latency"); // 'latency' | 'volume' | 'errors'
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -243,6 +251,74 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     const updated = { ...user, name: profileName, email: profileEmail };
     localStorage.setItem("user_session", JSON.stringify(updated));
     showToast("Profile settings saved!");
+  };
+
+  // Handle Add Profile in Settings
+  const handleAddProfileInSettings = async (e) => {
+    e.preventDefault();
+    if (!addProfName || !addProfEmail) return;
+
+    const tempId = Date.now();
+    const newProfileUser = {
+      id: tempId,
+      name: addProfName.trim(),
+      email: addProfEmail.trim(),
+      role: addProfRole,
+      status: 1,
+      date: "Just now",
+      title: addProfTitle || (addProfRole === "admin" ? "System Admin" : addProfRole === "editor" ? "Content Editor" : "Viewer"),
+      avatarColor: addProfAvatarColor
+    };
+
+    // Update local state immediately
+    setTeamMembers((prev) => [newProfileUser, ...prev]);
+    showToast(`✅ Profile "${addProfName}" created successfully!`);
+
+    // Reset form fields
+    setAddProfName("");
+    setAddProfEmail("");
+    setAddProfPassword("");
+    setAddProfRole("viewer");
+    setAddProfTitle("");
+
+    // Sync to Backend DB
+    try {
+      const res = await fetch("http://localhost:4000/webservices/users/add-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newProfileUser.name,
+          email: newProfileUser.email,
+          password: addProfPassword || "password123",
+          role: newProfileUser.role,
+          user_type: newProfileUser.role === "admin" ? 1 : newProfileUser.role === "editor" ? 2 : 3,
+          status: 1
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.status === 1) {
+        if (data.user_id) {
+          setTeamMembers((prev) =>
+            prev.map((m) => (m.id === tempId ? { ...m, id: data.user_id } : m))
+          );
+        }
+        fetchUsersFromBackend();
+      }
+    } catch (err) {
+      console.warn("Backend offline, profile saved locally:", err);
+    }
+  };
+
+  // Quick Switch Profile Handler
+  const handleSwitchProfile = (member) => {
+    if (onUpdateUser) {
+      onUpdateUser({ ...member });
+    }
+    setProfileName(member.name);
+    setProfileEmail(member.email);
+    localStorage.setItem("user_session", JSON.stringify(member));
+    showToast(`Switched active profile to ${member.name}!`, "info");
   };
 
   const initials = profileName.split(" ").map((n) => n[0]).join("").toUpperCase() || "U";
@@ -960,37 +1036,255 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
 
           {/* SETTINGS VIEW */}
           {activeMenu === "settings" && (
-            <div className="content-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
-              <div className="card">
-                <div className="card-title">Profile Information</div>
-                <form onSubmit={handleSaveProfile} className="settings-section">
-                  <div className="settings-group">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      className="settings-input"
-                      value={profileName}
-                      onChange={(e) => setProfileName(e.target.value)}
-                      required
-                    />
+            <div className="settings-container-layout">
+              {/* Active Profile Header Banner */}
+              <div className="settings-header-banner">
+                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  <div
+                    className="avatar-large"
+                    style={{
+                      background: isAdmin ? "#ef4444" : isEditor ? "#f59e0b" : "var(--primary)",
+                      width: "54px",
+                      height: "54px",
+                      borderRadius: "50%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: "20px",
+                      fontWeight: "bold",
+                      boxShadow: "var(--shadow-md)"
+                    }}
+                  >
+                    {initials}
                   </div>
-                  <div className="settings-group">
-                    <label>Email Address</label>
-                    <input
-                      type="email"
-                      className="settings-input"
-                      value={profileEmail}
-                      onChange={(e) => setProfileEmail(e.target.value)}
-                      required
-                    />
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "700", color: "var(--text-main)" }}>
+                      {profileName}
+                    </h2>
+                    <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: "14px" }}>
+                      {profileEmail} &bull; <span style={{ textTransform: "capitalize", fontWeight: "600", color: "var(--primary)" }}>{user?.role || "User"} Account</span>
+                    </p>
                   </div>
-                  <button type="submit" className="action-btn" style={{ width: "fit-content" }}>
-                    Save Profile
-                  </button>
-                </form>
+                </div>
+              </div>
+
+              <div className="content-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px", marginTop: "20px" }}>
+                {/* CARD 1: EDIT ACTIVE PROFILE */}
+                <div className="card">
+                  <div className="card-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>👤 Edit Active Profile</span>
+                  </div>
+                  <form onSubmit={handleSaveProfile} className="settings-section">
+                    <div className="settings-group">
+                      <label>Full Name</label>
+                      <input
+                        type="text"
+                        className="settings-input"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="settings-group">
+                      <label>Email Address</label>
+                      <input
+                        type="email"
+                        className="settings-input"
+                        value={profileEmail}
+                        onChange={(e) => setProfileEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="settings-group">
+                      <label>New Password (Optional)</label>
+                      <input
+                        type="password"
+                        className="settings-input"
+                        placeholder="Leave blank to keep current password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                    </div>
+                    <button type="submit" className="action-btn" style={{ width: "fit-content" }}>
+                      Save Active Profile
+                    </button>
+                  </form>
+                </div>
+
+                {/* CARD 2: ADD NEW PROFILE */}
+                <div className="card" style={{ borderTop: "4px solid var(--primary)" }}>
+                  <div className="card-title" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span>➕ Add New Profile</span>
+                    <span className="badge active" style={{ fontSize: "11px" }}>Settings Control</span>
+                  </div>
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                    Create a new user profile account for your team or workspace right from Settings.
+                  </p>
+                  <form onSubmit={handleAddProfileInSettings} className="settings-section">
+                    <div className="settings-group">
+                      <label>Profile Full Name *</label>
+                      <input
+                        type="text"
+                        className="settings-input"
+                        placeholder="e.g. Sarah Connor"
+                        value={addProfName}
+                        onChange={(e) => setAddProfName(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="settings-group">
+                      <label>Email Address *</label>
+                      <input
+                        type="email"
+                        className="settings-input"
+                        placeholder="sarah@company.com"
+                        value={addProfEmail}
+                        onChange={(e) => setAddProfEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="settings-group">
+                      <label>Account Password</label>
+                      <input
+                        type="password"
+                        className="settings-input"
+                        placeholder="Password (default: password123)"
+                        value={addProfPassword}
+                        onChange={(e) => setAddProfPassword(e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div className="settings-group">
+                        <label>Role Access</label>
+                        <select
+                          className="filter-select"
+                          value={addProfRole}
+                          onChange={(e) => setAddProfRole(e.target.value)}
+                          style={{ width: "100%" }}
+                        >
+                          <option value="viewer">👁️ Viewer</option>
+                          <option value="editor">✏️ Editor</option>
+                          <option value="admin">⚡ Admin</option>
+                        </select>
+                      </div>
+
+                      <div className="settings-group">
+                        <label>Avatar Color</label>
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "6px" }}>
+                          {["#4f46e5", "#059669", "#dc2626", "#d97706", "#7c3aed"].map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              onClick={() => setAddProfAvatarColor(color)}
+                              style={{
+                                width: "26px",
+                                height: "26px",
+                                borderRadius: "50%",
+                                backgroundColor: color,
+                                border: addProfAvatarColor === color ? "2px solid var(--text-main)" : "none",
+                                cursor: "pointer",
+                                transform: addProfAvatarColor === color ? "scale(1.15)" : "scale(1)",
+                                transition: "all 0.15s ease"
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button type="submit" className="action-btn" style={{ marginTop: "12px", width: "100%" }}>
+                      <span>➕</span> Create Profile Account
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              {/* CARD 3: SAVED PROFILES & SWITCHER */}
+              <div className="card" style={{ marginTop: "24px" }}>
+                <div className="card-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                  <span>🔀 Workspace Profiles ({teamMembers.length} Available)</span>
+                  <small style={{ color: "var(--text-muted)" }}>Click "Switch Profile" to instantly change active profile</small>
+                </div>
+                <div className="profiles-switcher-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px", marginTop: "16px" }}>
+                  {teamMembers.map((m) => {
+                    const isCurrent = m.email.toLowerCase() === profileEmail.toLowerCase();
+                    const mInitials = m.name.split(" ").map(n => n[0]).join("").toUpperCase() || "U";
+                    const mColor = m.avatarColor || (m.role === "admin" ? "#ef4444" : m.role === "editor" ? "#f59e0b" : "#4f46e5");
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={`profile-card-item ${isCurrent ? "current-active" : ""}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "14px 16px",
+                          borderRadius: "var(--radius-md)",
+                          border: isCurrent ? "2px solid var(--primary)" : "1px solid var(--border)",
+                          background: isCurrent ? "var(--primary-light)" : "var(--bg-input)",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div
+                            className="avatar"
+                            style={{
+                              background: mColor,
+                              width: "40px",
+                              height: "40px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: "14px",
+                              fontWeight: "bold"
+                            }}
+                          >
+                            {mInitials}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: "600", fontSize: "14px", color: "var(--text-main)", display: "flex", alignItems: "center", gap: "6px" }}>
+                              {m.name}
+                              {isCurrent && (
+                                <span className="badge active" style={{ fontSize: "10px", padding: "2px 6px" }}>
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+                              {m.email} &bull; <strong style={{ textTransform: "capitalize" }}>{m.role}</strong>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!isCurrent ? (
+                          <button
+                            type="button"
+                            className="secondary-btn"
+                            onClick={() => handleSwitchProfile(m)}
+                            style={{ fontSize: "12px", padding: "6px 12px" }}
+                          >
+                            Switch
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: "bold" }}>
+                            ✓ Current
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
+
         </main>
       </div>
 

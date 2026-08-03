@@ -936,3 +936,22 @@ body.dark-mode {
   display: inline-block;
 }
 
+/* Settings View & Profile Styling */
+.settings-header-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-card-item.current-active {
+  box-shadow: var(--shadow-sm);
+}
+
+
