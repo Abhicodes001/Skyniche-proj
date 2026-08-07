@@ -3,16 +3,65 @@ import { Modal, Toast } from "../components/Modal";
 import "../styles/Dashboard.css";
 
 function Dashboard({ user, onLogout, onUpdateUser }) {
+  const [roles, setRoles] = useState([
+    {
+      id: "admin",
+      name: "Admin",
+      description: "Full system access and authority to manage all users and roles.",
+      permissions: ["dashboard.view", "users.view", "users.create", "users.edit", "users.delete", "roles.manage", "reports.view", "files.upload"],
+      is_system: true,
+      color: "#6366f1"
+    },
+    {
+      id: "editor",
+      name: "Editor",
+      description: "Can view dashboard, edit user details, upload files, and manage content.",
+      permissions: ["dashboard.view", "users.view", "users.edit", "reports.view", "files.upload"],
+      is_system: true,
+      color: "#06b6d4"
+    },
+    {
+      id: "viewer",
+      name: "Viewer",
+      description: "Read-only access to dashboard and user directory.",
+      permissions: ["dashboard.view", "users.view"],
+      is_system: true,
+      color: "#64748b"
+    }
+  ]);
+
+  const [availablePermissions, setAvailablePermissions] = useState([
+    { key: 'dashboard.view', name: 'View Dashboard Overview', category: 'General Access' },
+    { key: 'users.view', name: 'View User Directory', category: 'User Management' },
+    { key: 'users.create', name: 'Create New Users', category: 'User Management' },
+    { key: 'users.edit', name: 'Edit User Details', category: 'User Management' },
+    { key: 'users.delete', name: 'Delete User Accounts', category: 'User Management' },
+    { key: 'roles.manage', name: 'Manage Roles & Permissions', category: 'System Administration' },
+    { key: 'reports.view', name: 'View Analytics & Reports', category: 'Reports & Files' },
+    { key: 'files.upload', name: 'Upload & Manage Files', category: 'Reports & Files' },
+  ]);
+
   const isAdmin = user?.role === "admin" || user?.user_type === 1 || user?.email?.includes("admin");
   const isEditor = user?.role === "editor" || user?.user_type === 2;
   const isViewer = !isAdmin && !isEditor;
 
-  const canAdd = isAdmin || isEditor;
-  const canEdit = isAdmin || isEditor;
-  const canDelete = isAdmin;
+  // Resolve user role & permissions
+  const userRoleObj = roles.find(r => r.id === user?.role || r.name.toLowerCase() === (user?.role || '').toLowerCase()) ||
+    (isAdmin ? roles[0] : isEditor ? roles[1] : roles[2]);
+
+  const userPermissions = userRoleObj?.permissions ||
+    (isAdmin ? availablePermissions.map(p => p.key) : isEditor ? ['dashboard.view', 'users.view', 'users.edit', 'files.upload'] : ['dashboard.view', 'users.view']);
+
+  const hasPermission = (permKey) => isAdmin || userPermissions.includes(permKey);
+
+  const canAdd = hasPermission('users.create');
+  const canEdit = hasPermission('users.edit');
+  const canDelete = hasPermission('users.delete');
+  const canManageRoles = hasPermission('roles.manage');
 
   // Navigation & UI State
-  const [activeMenu, setActiveMenu] = useState(isAdmin || isEditor ? "admin" : "overview");
+  const [activeMenu, setActiveMenu] = useState(isAdmin || isEditor || canManageRoles ? "admin" : "overview");
+  const [adminSubTab, setAdminSubTab] = useState("users"); // 'users' | 'roles'
   const [timeframe, setTimeframe] = useState("month");
   const [searchTerm, setSearchTerm] = useState("");
   const [toast, setToast] = useState({ message: "", type: "info" });
@@ -34,6 +83,14 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
   // Edit User Modal State
   const [editUserModalOpen, setEditUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+
+  // Role Management Modal State
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState(null);
+  const [roleName, setRoleName] = useState("");
+  const [roleDescription, setRoleDescription] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
+  const [roleColor, setRoleColor] = useState("#8b5cf6");
 
   const [userStatusFilter, setUserStatusFilter] = useState("All");
 
@@ -121,9 +178,128 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
     }
   };
 
+  // Fetch roles from backend API
+  const fetchRolesFromBackend = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/roles");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 1 && Array.isArray(data.roles)) {
+          setRoles(data.roles);
+        }
+        if (Array.isArray(data.available_permissions) && data.available_permissions.length > 0) {
+          setAvailablePermissions(data.available_permissions);
+        }
+      }
+    } catch (e) {
+      console.warn("Backend offline, using fallback roles:", e);
+    }
+  };
+
   useEffect(() => {
     fetchUsersFromBackend();
+    fetchRolesFromBackend();
   }, [activeMenu]);
+
+  // Role Management Handlers
+  const handleOpenCreateRole = () => {
+    setEditingRole(null);
+    setRoleName("");
+    setRoleDescription("");
+    setSelectedPermissions(["dashboard.view", "users.view"]);
+    setRoleColor("#8b5cf6");
+    setRoleModalOpen(true);
+  };
+
+  const handleOpenEditRole = (role) => {
+    setEditingRole(role);
+    setRoleName(role.name);
+    setRoleDescription(role.description || "");
+    setSelectedPermissions(role.permissions || []);
+    setRoleColor(role.color || "#8b5cf6");
+    setRoleModalOpen(true);
+  };
+
+  const handleTogglePermission = (permKey) => {
+    setSelectedPermissions(prev =>
+      prev.includes(permKey) ? prev.filter(k => k !== permKey) : [...prev, permKey]
+    );
+  };
+
+  const handleSelectAllPermissions = () => {
+    setSelectedPermissions(availablePermissions.map(p => p.key));
+  };
+
+  const handleClearAllPermissions = () => {
+    setSelectedPermissions([]);
+  };
+
+  const handleSaveRole = async (e) => {
+    e.preventDefault();
+    if (!roleName.trim()) return;
+
+    if (editingRole) {
+      // Edit existing role
+      const updated = {
+        ...editingRole,
+        name: roleName.trim(),
+        description: roleDescription,
+        permissions: selectedPermissions,
+        color: roleColor
+      };
+      setRoles(prev => prev.map(r => r.id === editingRole.id ? updated : r));
+      showToast(`Updated permissions for role "${roleName}"!`);
+      setRoleModalOpen(false);
+
+      try {
+        await fetch(`http://localhost:4000/api/roles/${editingRole.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: roleName,
+            description: roleDescription,
+            permissions: selectedPermissions,
+            color: roleColor
+          })
+        });
+      } catch (err) {}
+    } else {
+      // Create new role
+      const slug = roleName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
+      const newRole = {
+        id: slug,
+        name: roleName.trim(),
+        description: roleDescription,
+        permissions: selectedPermissions,
+        is_system: false,
+        color: roleColor
+      };
+
+      setRoles(prev => [...prev, newRole]);
+      showToast(`✅ Created custom role "${roleName}" on the spot!`);
+      setRoleModalOpen(false);
+
+      try {
+        const res = await fetch("http://localhost:4000/api/roles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newRole)
+        });
+        if (res.ok) fetchRolesFromBackend();
+      } catch (err) {}
+    }
+  };
+
+  const handleDeleteRole = async (roleId, rName) => {
+    if (!window.confirm(`Are you sure you want to delete custom role "${rName}"?`)) return;
+
+    setRoles(prev => prev.filter(r => r.id !== roleId));
+    showToast(`Deleted role "${rName}"`, "info");
+
+    try {
+      await fetch(`http://localhost:4000/api/roles/${roleId}`, { method: "DELETE" });
+    } catch (err) {}
+  };
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -468,9 +644,28 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
             </div>
           </div>
 
-          {/* ADMIN CONTROL CENTER VIEW */}
+          {/* ADMIN CONTROL CENTER & ROLES MANAGEMENT VIEW */}
           {activeMenu === "admin" && (
             <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              {/* Sub-tab Switcher Bar */}
+              <div className="admin-subtabs" style={{ display: "flex", gap: "12px", borderBottom: "1px solid var(--border)", paddingBottom: "12px" }}>
+                <button
+                  type="button"
+                  className={`subtab-btn ${adminSubTab === "users" ? "active" : ""}`}
+                  onClick={() => setAdminSubTab("users")}
+                >
+                  👥 User Directory & Accounts ({teamMembers.length})
+                </button>
+                <button
+                  type="button"
+                  className={`subtab-btn ${adminSubTab === "roles" ? "active" : ""}`}
+                  onClick={() => setAdminSubTab("roles")}
+                >
+                  🛡️ Custom Roles & Granular Permissions ({roles.length})
+                </button>
+              </div>
+
+              {/* STATS OVERVIEW */}
               <div className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-header">
@@ -478,120 +673,229 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
                     <div className="stat-icon blue">👥</div>
                   </div>
                   <div className="stat-value">{teamMembers.length}</div>
-                  <span className="stat-badge positive">Registered in MySQL</span>
+                  <span className="stat-badge positive">Registered Accounts</span>
                 </div>
 
                 <div className="stat-card">
                   <div className="stat-header">
-                    <span className="stat-title">Admin Accounts</span>
-                    <div className="stat-icon purple">🔑</div>
+                    <span className="stat-title">Configured Roles</span>
+                    <div className="stat-icon purple">🛡️</div>
                   </div>
-                  <div className="stat-value">{teamMembers.filter(m => m.role === "admin").length}</div>
-                  <span className="stat-badge positive">Superusers</span>
+                  <div className="stat-value">{roles.length}</div>
+                  <span className="stat-badge positive">{roles.filter(r => !r.is_system).length} Custom Created</span>
                 </div>
 
                 <div className="stat-card">
                   <div className="stat-header">
-                    <span className="stat-title">Active Status</span>
+                    <span className="stat-title">System Permissions</span>
                     <div className="stat-icon green">⚡</div>
                   </div>
-                  <div className="stat-value">{teamMembers.filter(m => m.status === 1).length}</div>
-                  <span className="stat-badge positive">Active accounts</span>
+                  <div className="stat-value">{availablePermissions.length}</div>
+                  <span className="stat-badge positive">Granular Controls</span>
                 </div>
               </div>
 
-              {/* Admin Table */}
-              <div className="card">
-                <div className="card-title" style={{ flexWrap: "wrap", gap: "12px" }}>
-                  <span>Admin User Management Table</span>
-                  
-                  <div style={{ display: "flex", gap: "10px" }}>
-                    <select
-                      className="filter-select"
-                      value={userStatusFilter}
-                      onChange={(e) => setUserStatusFilter(e.target.value)}
-                    >
-                      <option value="All">All Statuses</option>
-                      <option value="Active">Active Only</option>
-                      <option value="Inactive">Inactive Only</option>
-                    </select>
+              {/* TAB 1: USERS DIRECTORY TABLE */}
+              {adminSubTab === "users" && (
+                <div className="card">
+                  <div className="card-title" style={{ flexWrap: "wrap", gap: "12px" }}>
+                    <span>Admin User Management Table</span>
+                    
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      <select
+                        className="filter-select"
+                        value={userStatusFilter}
+                        onChange={(e) => setUserStatusFilter(e.target.value)}
+                      >
+                        <option value="All">All Statuses</option>
+                        <option value="Active">Active Only</option>
+                        <option value="Inactive">Inactive Only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Name & Email</th>
+                          <th>Role Access</th>
+                          <th>Status</th>
+                          <th>Date Added</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredMembers.map((m) => {
+                          const matchedRole = roles.find(r => r.id === m.role || r.name.toLowerCase() === (m.role || '').toLowerCase());
+                          return (
+                            <tr key={m.id}>
+                              <td><strong>#{m.id}</strong></td>
+                              <td>
+                                <strong>{m.name}</strong>
+                                <br />
+                                <small style={{ color: "var(--text-light)" }}>{m.email}</small>
+                              </td>
+                              <td>
+                                <span style={{
+                                  padding: "3px 10px",
+                                  borderRadius: "6px",
+                                  fontSize: "12px",
+                                  fontWeight: "bold",
+                                  background: matchedRole?.color ? `${matchedRole.color}22` : "var(--primary-light)",
+                                  color: matchedRole?.color || "var(--primary)",
+                                  border: `1px solid ${matchedRole?.color || "var(--primary)"}44`
+                                }}>
+                                  🛡️ {matchedRole?.name || (m.role ? m.role.toUpperCase() : "VIEWER")}
+                                </span>
+                              </td>
+                              <td>
+                                <span className={`badge ${m.status === 1 ? "active" : "offline"}`}>
+                                  {m.status === 1 ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+                              <td>{m.date}</td>
+                              <td>
+                                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                  {canEdit && (
+                                    <button
+                                      type="button"
+                                      className="action-icon-btn"
+                                      onClick={() => { setEditingUser({ ...m }); setEditUserModalOpen(true); }}
+                                      style={{ color: "var(--primary)" }}
+                                    >
+                                      ✏️ Edit
+                                    </button>
+                                  )}
+                                  {canDelete && (
+                                    <button
+                                      type="button"
+                                      className="action-icon-btn"
+                                      onClick={() => handleDeleteMember(m.id, m.name)}
+                                      style={{ color: "#ef4444" }}
+                                    >
+                                      🗑️ Delete
+                                    </button>
+                                  )}
+                                  {!canEdit && !canDelete && (
+                                    <span style={{ fontSize: "12px", color: "var(--text-light)", fontStyle: "italic" }}>
+                                      👁️ Read-Only
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
+              )}
 
-                <div className="table-responsive">
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Name & Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Date Added</th>
-                        <th>Admin Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredMembers.map((m) => (
-                        <tr key={m.id}>
-                          <td><strong>#{m.id}</strong></td>
-                          <td>
-                            <strong>{m.name}</strong>
-                            <br />
-                            <small style={{ color: "var(--text-light)" }}>{m.email}</small>
-                          </td>
-                          <td>
-                            <span style={{
-                              padding: "2px 8px",
-                              borderRadius: "6px",
-                              fontSize: "12px",
-                              fontWeight: "bold",
-                              background: m.role === "admin" ? "#fee2e2" : m.role === "editor" ? "#fef3c7" : "var(--primary-light)",
-                              color: m.role === "admin" ? "#ef4444" : m.role === "editor" ? "#d97706" : "var(--primary)"
-                            }}>
-                              {m.role ? m.role.toUpperCase() : "VIEWER"}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`badge ${m.status === 1 ? "active" : "offline"}`}>
-                              {m.status === 1 ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td>{m.date}</td>
-                          <td>
-                            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  className="action-icon-btn"
-                                  onClick={() => { setEditingUser({ ...m }); setEditUserModalOpen(true); }}
-                                  style={{ color: "var(--primary)" }}
-                                >
-                                  ✏️ Edit
-                                </button>
-                              )}
-                              {canDelete && (
-                                <button
-                                  type="button"
-                                  className="action-icon-btn"
-                                  onClick={() => handleDeleteMember(m.id, m.name)}
-                                  style={{ color: "#ef4444" }}
-                                >
-                                  🗑️ Delete
-                                </button>
-                              )}
-                              {!canEdit && !canDelete && (
-                                <span style={{ fontSize: "12px", color: "var(--text-light)", fontStyle: "italic" }}>
-                                  👁️ Read-Only
-                                </span>
-                              )}
+              {/* TAB 2: ROLES & PERMISSIONS MANAGEMENT */}
+              {adminSubTab === "roles" && (
+                <div className="card">
+                  <div className="card-title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <span>🛡️ Roles & Granular Permissions Directory</span>
+                      <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--text-muted)", fontWeight: "normal" }}>
+                        Admins can create custom roles on the spot and select specific checkbox permissions granted to users of that role.
+                      </p>
+                    </div>
+
+                    {canManageRoles && (
+                      <button type="button" className="action-btn" onClick={handleOpenCreateRole}>
+                        <span>➕</span> Create New Custom Role
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="roles-grid">
+                    {roles.map((r) => {
+                      const userCount = teamMembers.filter(m => m.role === r.id || m.role?.toLowerCase() === r.name.toLowerCase()).length;
+                      const permCount = r.permissions?.length || 0;
+
+                      return (
+                        <div key={r.id} className="role-card" style={{ borderTop: `4px solid ${r.color || "var(--primary)"}` }}>
+                          <div>
+                            <div className="role-card-header">
+                              <div>
+                                <h3 className="role-title">
+                                  <span style={{ width: "12px", height: "12px", borderRadius: "50%", background: r.color || "var(--primary)", display: "inline-block" }}></span>
+                                  {r.name}
+                                </h3>
+                                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+                                  {r.is_system ? (
+                                    <span className="badge active" style={{ fontSize: "10px" }}>System Default</span>
+                                  ) : (
+                                    <span className="badge" style={{ fontSize: "10px", background: "#f3e8ff", color: "#9333ea" }}>Custom Created</span>
+                                  )}
+                                  <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                                    &bull; {userCount} {userCount === 1 ? 'user' : 'users'} assigned
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                            <p className="role-desc">{r.description || "No description provided."}</p>
+
+                            <div style={{ marginTop: "14px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <span style={{ fontSize: "12px", fontWeight: "600", color: "var(--text-main)" }}>
+                                  Permissions Granted ({permCount} / {availablePermissions.length})
+                                </span>
+                              </div>
+
+                              <div className="permission-tags-container">
+                                {r.permissions && r.permissions.length > 0 ? (
+                                  r.permissions.map(permKey => {
+                                    const permObj = availablePermissions.find(p => p.key === permKey);
+                                    return (
+                                      <span key={permKey} className="permission-chip" style={{ background: `${r.color || '#4f46e5'}15`, color: r.color || '#4f46e5' }}>
+                                        ✓ {permObj ? permObj.name : permKey}
+                                      </span>
+                                    );
+                                  })
+                                ) : (
+                                  <span style={{ fontSize: "12px", color: "var(--danger)", fontStyle: "italic" }}>
+                                    No permissions assigned
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: "flex", gap: "10px", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--border)" }}>
+                            {canManageRoles && (
+                              <button
+                                type="button"
+                                className="secondary-btn"
+                                onClick={() => handleOpenEditRole(r)}
+                                style={{ flex: 1, justifyContent: "center", fontSize: "12px" }}
+                              >
+                                ✏️ Edit Permissions
+                              </button>
+                            )}
+                            {canManageRoles && !r.is_system && (
+                              <button
+                                type="button"
+                                className="action-icon-btn"
+                                onClick={() => handleDeleteRole(r.id, r.name)}
+                                style={{ color: "var(--danger)", padding: "6px 10px" }}
+                                title="Delete Role"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1331,16 +1635,61 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
           </div>
 
           <div className="settings-group">
-            <label>User Role</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <label style={{ margin: 0, fontWeight: "700" }}>User Role Access</label>
+              {canManageRoles && (
+                <button
+                  type="button"
+                  onClick={handleOpenCreateRole}
+                  style={{
+                    background: "var(--primary-light)",
+                    color: "var(--primary)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    borderRadius: "6px",
+                    padding: "4px 8px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  ✨ Build Custom Role & Permissions
+                </button>
+              )}
+            </div>
+
             <select
               className="filter-select"
               value={newMemberRole}
               onChange={(e) => setNewMemberRole(e.target.value)}
             >
-              <option value="viewer">👁️ Viewer (Read-Only access)</option>
-              <option value="editor">✏️ Editor (Read + Write access)</option>
-              <option value="admin">⚡ Admin (Full Control - Add, Edit, Delete)</option>
+              {roles.map(r => (
+                <option key={r.id} value={r.id}>
+                  🛡️ {r.name} ({r.permissions?.length || 0} Permissions) {r.is_system ? '• System' : '• Custom'}
+                </option>
+              ))}
             </select>
+
+            {/* Live Role Permission Preview Box */}
+            {(() => {
+              const selectedRoleObj = roles.find(r => r.id === newMemberRole || r.name.toLowerCase() === newMemberRole.toLowerCase());
+              return selectedRoleObj ? (
+                <div className="permissions-preview-box">
+                  <div className="permissions-preview-title">
+                    Permissions Included in "{selectedRoleObj.name}":
+                  </div>
+                  <div className="permission-tags-container">
+                    {selectedRoleObj.permissions?.map(pKey => {
+                      const pObj = availablePermissions.find(ap => ap.key === pKey);
+                      return (
+                        <span key={pKey} className="permission-chip" style={{ fontSize: "10px", padding: "2px 6px" }}>
+                          ✓ {pObj ? pObj.name : pKey}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null;
+            })()}
           </div>
 
           <button type="submit" className="action-btn">
@@ -1380,16 +1729,61 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
             </div>
 
             <div className="settings-group">
-              <label>Role</label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <label style={{ margin: 0, fontWeight: "700" }}>Role Access</label>
+                {canManageRoles && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateRole}
+                    style={{
+                      background: "var(--primary-light)",
+                      color: "var(--primary)",
+                      border: "1px solid rgba(99, 102, 241, 0.3)",
+                      borderRadius: "6px",
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      cursor: "pointer"
+                    }}
+                  >
+                    ✨ Build Custom Role & Permissions
+                  </button>
+                )}
+              </div>
+
               <select
                 className="filter-select"
                 value={editingUser.role}
                 onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
               >
-                <option value="viewer">👁️ Viewer (Read-Only access)</option>
-                <option value="editor">✏️ Editor (Read + Write access)</option>
-                <option value="admin">⚡ Admin (Full Control - Add, Edit, Delete)</option>
+                {roles.map(r => (
+                  <option key={r.id} value={r.id}>
+                    🛡️ {r.name} ({r.permissions?.length || 0} Permissions) {r.is_system ? '• System' : '• Custom'}
+                  </option>
+                ))}
               </select>
+
+              {/* Live Role Permission Preview Box */}
+              {(() => {
+                const selectedRoleObj = roles.find(r => r.id === editingUser.role || r.name.toLowerCase() === (editingUser.role || '').toLowerCase());
+                return selectedRoleObj ? (
+                  <div className="permissions-preview-box">
+                    <div className="permissions-preview-title">
+                      Permissions Granted to "{selectedRoleObj.name}":
+                    </div>
+                    <div className="permission-tags-container">
+                      {selectedRoleObj.permissions?.map(pKey => {
+                        const pObj = availablePermissions.find(ap => ap.key === pKey);
+                        return (
+                          <span key={pKey} className="permission-chip" style={{ fontSize: "10px", padding: "2px 6px" }}>
+                            ✓ {pObj ? pObj.name : pKey}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
 
             <div className="settings-group">
@@ -1409,6 +1803,131 @@ function Dashboard({ user, onLogout, onUpdateUser }) {
             </button>
           </form>
         )}
+      </Modal>
+
+      {/* Modal: Create & Edit Custom Role on the Spot */}
+      <Modal
+        isOpen={roleModalOpen}
+        onClose={() => setRoleModalOpen(false)}
+        title={editingRole ? `Edit Role: ${editingRole.name}` : "Create Custom Role on the Spot"}
+      >
+        <form onSubmit={handleSaveRole} className="settings-section">
+          <div className="settings-group">
+            <label>Role Name *</label>
+            <input
+              type="text"
+              className="settings-input"
+              placeholder="e.g. Content Moderator, Support Lead, Billing Admin"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              disabled={editingRole?.is_system}
+              required
+            />
+          </div>
+
+          <div className="settings-group">
+            <label>Role Description</label>
+            <input
+              type="text"
+              className="settings-input"
+              placeholder="Brief summary of what users with this role can do"
+              value={roleDescription}
+              onChange={(e) => setRoleDescription(e.target.value)}
+            />
+          </div>
+
+          <div className="settings-group">
+            <label>Role Badge Color</label>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "6px" }}>
+              {["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ec4899", "#6366f1"].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setRoleColor(c)}
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    backgroundColor: c,
+                    border: roleColor === c ? "2px solid var(--text-main)" : "none",
+                    cursor: "pointer",
+                    transform: roleColor === c ? "scale(1.15)" : "scale(1)",
+                    transition: "all 0.15s ease"
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Granular Permission Checkboxes Section */}
+          <div className="settings-group">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <label style={{ margin: 0, fontWeight: "700" }}>
+                Select Role Permissions ({selectedPermissions.length} / {availablePermissions.length} Enabled)
+              </label>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={handleSelectAllPermissions}
+                  style={{ fontSize: "11px", padding: "4px 8px" }}
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={handleClearAllPermissions}
+                  style={{ fontSize: "11px", padding: "4px 8px" }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+
+            {/* Categorized Checkbox List */}
+            {(() => {
+              const categories = Array.from(new Set(availablePermissions.map(p => p.category)));
+              return categories.map(cat => {
+                const permsInCat = availablePermissions.filter(p => p.category === cat);
+                return (
+                  <div key={cat} className="permissions-category-box">
+                    <div className="permissions-category-title">
+                      <span>📌 {cat}</span>
+                    </div>
+
+                    <div className="permissions-grid">
+                      {permsInCat.map(p => {
+                        const isChecked = selectedPermissions.includes(p.key);
+                        return (
+                          <label key={p.key} className="permission-checkbox-item" style={{
+                            borderColor: isChecked ? "var(--primary)" : "var(--border)",
+                            background: isChecked ? "var(--primary-light)" : "var(--bg-card)"
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => handleTogglePermission(p.key)}
+                            />
+                            <div>
+                              <div className="permission-name">{p.name}</div>
+                              <div className="permission-key-tag">{p.key}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+
+          <button type="submit" className="action-btn" style={{ marginTop: "12px" }}>
+            {editingRole ? "💾 Save Permission Changes" : "✨ Create Custom Role On The Spot"}
+          </button>
+        </form>
       </Modal>
     </div>
   );

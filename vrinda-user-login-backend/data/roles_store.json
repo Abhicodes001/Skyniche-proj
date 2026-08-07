@@ -1,0 +1,57 @@
+[
+  {
+    "id": "admin",
+    "name": "Admin",
+    "description": "Full system access and authority to manage all users and roles.",
+    "permissions": [
+      "dashboard.view",
+      "users.view",
+      "users.create",
+      "users.edit",
+      "users.delete",
+      "roles.manage",
+      "reports.view",
+      "files.upload"
+    ],
+    "is_system": true,
+    "color": "#6366f1"
+  },
+  {
+    "id": "editor",
+    "name": "Editor",
+    "description": "Can view dashboard, edit user details, upload files, and manage content.",
+    "permissions": [
+      "dashboard.view",
+      "users.view",
+      "users.edit",
+      "reports.view",
+      "files.upload"
+    ],
+    "is_system": true,
+    "color": "#06b6d4"
+  },
+  {
+    "id": "viewer",
+    "name": "Viewer",
+    "description": "Read-only access to dashboard and user directory.",
+    "permissions": [
+      "dashboard.view",
+      "users.view"
+    ],
+    "is_system": true,
+    "color": "#64748b"
+  },
+  {
+    "id": "content_moderator",
+    "name": "Content Moderator",
+    "description": "Can view and edit content",
+    "permissions": [
+      "dashboard.view",
+      "users.view",
+      "users.edit"
+    ],
+    "is_system": false,
+    "color": "#8b5cf6",
+    "created_at": 1786097142
+  }
+]

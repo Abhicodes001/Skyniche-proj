@@ -21,8 +21,20 @@ const userLogin = async (email) => {
 
     return results || false;
   } catch (error) {
-    console.error("User Login Error:", error);
-    return { error: "Server error" };
+    const { Users, getAllUsers } = require('./users');
+    const users = await getAllUsers();
+    const found = users.find(u => u.email === email && u.status === 1);
+    if (found) {
+      return {
+        user_id: found.id,
+        name: found.name,
+        password: found.password,
+        user_type: found.user_type,
+        email: found.email,
+        role: found.role
+      };
+    }
+    return false;
   }
 };
 

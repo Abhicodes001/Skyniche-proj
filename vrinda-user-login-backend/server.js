@@ -7,6 +7,7 @@ const multipart = require('@fastify/multipart');
 const fastifyCookie = require('@fastify/cookie');
 const authRoutes = require("./routes/auth");
 const userRoutes = require('./routes/users');
+const roleRoutes = require('./routes/roles');
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -44,8 +45,13 @@ fastify.register(require('@fastify/static'), {
 
 authRoutes.forEach((route) => fastify.route(route));
 userRoutes.forEach((route) => fastify.route(route));
+roleRoutes.forEach((route) => fastify.route(route));
 
-// Health check endpoint
+// Root & Health check endpoints
+fastify.get('/', async (req, reply) => {
+  return { status: "ok", message: "Vrinda User Login Backend API is active" };
+});
+
 fastify.get('/api/health', async (req, reply) => {
   return { status: "ok", message: "Backend API active" };
 });
@@ -53,11 +59,18 @@ fastify.get('/api/health', async (req, reply) => {
 // Port
 const PORT = process.env.PORT || 4000;
 
-// Running server
-fastify.listen(PORT, "0.0.0.0", (err) => {
+// Running server with dual IPv4/IPv6 support
+fastify.listen({ port: Number(PORT), host: '::' }, (err, address) => {
   if (err) {
-    console.error(err);
-    process.exit(1);
+    // Fallback to 0.0.0.0 if :: is not supported on OS environment
+    fastify.listen({ port: Number(PORT), host: '0.0.0.0' }, (err2) => {
+      if (err2) {
+        console.error(err2);
+        process.exit(1);
+      }
+      console.log(`Server is running on port ${PORT} (0.0.0.0)`);
+    });
+    return;
   }
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT} (${address})`);
 });

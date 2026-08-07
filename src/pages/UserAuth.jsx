@@ -12,7 +12,114 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null);
 
-  const [selectedRole, setSelectedRole] = useState("viewer"); // 'viewer' | 'editor' | 'admin'
+  const [roles, setRoles] = useState([
+    {
+      id: "admin",
+      name: "Admin",
+      description: "Full system access and authority to manage all users and roles.",
+      permissions: ["dashboard.view", "users.view", "users.create", "users.edit", "users.delete", "roles.manage", "reports.view", "files.upload"],
+      is_system: true,
+      color: "#6366f1"
+    },
+    {
+      id: "editor",
+      name: "Editor",
+      description: "Can view dashboard, edit user details, upload files, and manage content.",
+      permissions: ["dashboard.view", "users.view", "users.edit", "reports.view", "files.upload"],
+      is_system: true,
+      color: "#06b6d4"
+    },
+    {
+      id: "viewer",
+      name: "Viewer",
+      description: "Read-only access to dashboard and user directory.",
+      permissions: ["dashboard.view", "users.view"],
+      is_system: true,
+      color: "#64748b"
+    }
+  ]);
+
+  const [availablePermissions, setAvailablePermissions] = useState([
+    { key: 'dashboard.view', name: 'View Dashboard Overview', category: 'General Access' },
+    { key: 'users.view', name: 'View User Directory', category: 'User Management' },
+    { key: 'users.create', name: 'Create New Users', category: 'User Management' },
+    { key: 'users.edit', name: 'Edit User Details', category: 'User Management' },
+    { key: 'users.delete', name: 'Delete User Accounts', category: 'User Management' },
+    { key: 'roles.manage', name: 'Manage Roles & Permissions', category: 'System Administration' },
+    { key: 'reports.view', name: 'View Analytics & Reports', category: 'Reports & Files' },
+    { key: 'files.upload', name: 'Upload & Manage Files', category: 'Reports & Files' },
+  ]);
+
+  const [selectedRole, setSelectedRole] = useState("viewer");
+
+  // Create Role Modal state on Login Page
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleName, setRoleName] = useState("");
+  const [roleDescription, setRoleDescription] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState(["dashboard.view", "users.view"]);
+  const [roleColor, setRoleColor] = useState("#8b5cf6");
+
+  // Fetch dynamic roles from API
+  const fetchRolesFromBackend = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/roles");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === 1 && Array.isArray(data.roles)) {
+          setRoles(data.roles);
+        }
+        if (Array.isArray(data.available_permissions) && data.available_permissions.length > 0) {
+          setAvailablePermissions(data.available_permissions);
+        }
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    fetchRolesFromBackend();
+  }, []);
+
+  const handleOpenCreateRole = () => {
+    setRoleName("");
+    setRoleDescription("");
+    setSelectedPermissions(["dashboard.view", "users.view"]);
+    setRoleColor("#8b5cf6");
+    setRoleModalOpen(true);
+  };
+
+  const handleTogglePermission = (permKey) => {
+    setSelectedPermissions(prev =>
+      prev.includes(permKey) ? prev.filter(k => k !== permKey) : [...prev, permKey]
+    );
+  };
+
+  const handleCreateRoleOnLoginPage = async (e) => {
+    e.preventDefault();
+    if (!roleName.trim()) return;
+
+    const slug = roleName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
+    const newRole = {
+      id: slug,
+      name: roleName.trim(),
+      description: roleDescription,
+      permissions: selectedPermissions,
+      is_system: false,
+      color: roleColor
+    };
+
+    setRoles(prev => [...prev, newRole]);
+    setSelectedRole(slug);
+    setRoleModalOpen(false);
+    setAlert({ type: "success", message: `✅ Created custom role "${roleName}" on the spot! Selected for login.` });
+
+    try {
+      await fetch("http://localhost:4000/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newRole)
+      });
+    } catch (err) {}
+  };
 
   // Registered emails & roles memory for client validation fallback
   const [registeredUsers, setRegisteredUsers] = useState([
@@ -272,35 +379,6 @@ function UserAuth({ onSuccess, onSwitchToAdmin, isDarkMode, onToggleTheme }) {
                         required
                       />
                       <span className="field-icon">👤</span>
-                    </div>
-                  </div>
-
-                  <div className="role-selector-container">
-                    <label className="form-label">Select Account Role & Permissions</label>
-                    <div className="role-selector-grid">
-                      <div
-                        className={`role-option-card ${selectedRole === "viewer" ? "active-viewer" : ""}`}
-                        onClick={() => setSelectedRole("viewer")}
-                      >
-                        <span className="role-option-title">👁️ Viewer</span>
-                        <span className="role-option-desc">Read-Only</span>
-                      </div>
-
-                      <div
-                        className={`role-option-card ${selectedRole === "editor" ? "active-editor" : ""}`}
-                        onClick={() => setSelectedRole("editor")}
-                      >
-                        <span className="role-option-title">✏️ Editor</span>
-                        <span className="role-option-desc">Add & Edit</span>
-                      </div>
-
-                      <div
-                        className={`role-option-card ${selectedRole === "admin" ? "active-admin" : ""}`}
-                        onClick={() => setSelectedRole("admin")}
-                      >
-                        <span className="role-option-title">⚡ Admin</span>
-                        <span className="role-option-desc">Full Control</span>
-                      </div>
                     </div>
                   </div>
                 </>
