@@ -1,8 +1,8 @@
-# 🔐 Login Page UI — React + Vite
+#  Login Page UI — React + Vite
 
 A full-stack **User Authentication Portal** built with **React (Vite)** on the frontend and **Node.js/Express** on the backend, featuring JWT-based authentication, protected routes, admin access, and MySQL/MariaDB integration.
 
-## ✨ Features
+## Features
 
 * 🔐 **User Authentication** — Login and registration with JWT
 * 🛡️ **Admin Portal** — Role-based access with protected routes
@@ -13,7 +13,7 @@ A full-stack **User Authentication Portal** built with **React (Vite)** on the f
 * 🎨 **Modern UI** — Responsive glassmorphism-based design
 * 📱 **Responsive Design** — Works across desktop and mobile screens
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer             | Technology          |
 | ----------------- | ------------------- |
@@ -23,7 +23,7 @@ A full-stack **User Authentication Portal** built with **React (Vite)** on the f
 | Authentication    | JWT                 |
 | Password Security | bcrypt              |
 
-## 📁 Project Structure
+##  Project Structure
 
 ```text
 login-ui/
@@ -47,7 +47,7 @@ login-ui/
     └── config/
 ```
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### 1. Clone the Repository
 
