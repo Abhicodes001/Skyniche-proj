@@ -4,14 +4,14 @@ A full-stack **User Authentication Portal** built with **React (Vite)** on the f
 
 ## Features
 
-* 🔐 **User Authentication** — Login and registration with JWT
-* 🛡️ **Admin Portal** — Role-based access with protected routes
-* 📊 **User Dashboard** — Profile and account management
-* 💾 **Database Integration** — MySQL / MariaDB
-* 🔒 **Secure Passwords** — Password hashing using bcrypt
-* 💡 **Remember Me** — Session persistence using localStorage
-* 🎨 **Modern UI** — Responsive glassmorphism-based design
-* 📱 **Responsive Design** — Works across desktop and mobile screens
+*  **User Authentication** — Login and registration with JWT
+* **Admin Portal** — Role-based access with protected routes
+* **User Dashboard** — Profile and account management
+* **Database Integration** — MySQL / MariaDB
+*  **Secure Passwords** — Password hashing using bcrypt
+*  **Remember Me** — Session persistence using localStorage
+*  **Modern UI** — Responsive glassmorphism-based design
+*  **Responsive Design** — Works across desktop and mobile screens
 
 ##  Tech Stack
 
